@@ -271,14 +271,14 @@ function drawScene(deltaTime) { // gl, programInfo, buffers are now global
   const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
   const zNear = 0.1;
   const zFar = 100.0;
-  const projectionMatrix = mat4.create();
-  mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+  const projectionMatrix = glMatrix.mat4.create();
+  glMatrix.mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
 
   // --- Draw Grid ---
-  const gridModelViewMatrix = mat4.create();
-  mat4.translate(gridModelViewMatrix, gridModelViewMatrix, [-0.0, -1.5, -6.0]); // Position grid slightly lower
+  const gridModelViewMatrix = glMatrix.mat4.create();
+  glMatrix.mat4.translate(gridModelViewMatrix, gridModelViewMatrix, [-0.0, -1.5, -6.0]); // Position grid slightly lower
   // Rotate grid slightly to make it look like a floor
-  mat4.rotate(gridModelViewMatrix, gridModelViewMatrix, Math.PI / 10, [1, 0, 0]);
+  glMatrix.mat4.rotate(gridModelViewMatrix, gridModelViewMatrix, Math.PI / 10, [1, 0, 0]);
 
 
   gl.useProgram(gridProgramInfo.program);
@@ -305,16 +305,16 @@ function drawScene(deltaTime) { // gl, programInfo, buffers are now global
   // --- End Draw Grid ---
 
   // --- Draw Spoon ---
-  const spoonModelViewMatrix = mat4.create();
-  mat4.translate(spoonModelViewMatrix, spoonModelViewMatrix, [-0.0, 0.0, -6.0]);
+  const spoonModelViewMatrix = glMatrix.mat4.create();
+  glMatrix.mat4.translate(spoonModelViewMatrix, spoonModelViewMatrix, [-0.0, 0.0, -6.0]);
 
   spoonRotation += deltaTime * 0.5;
-  mat4.rotate(spoonModelViewMatrix, spoonModelViewMatrix, spoonRotation, [0, 1, 0]);
-  mat4.rotate(spoonModelViewMatrix, spoonModelViewMatrix, spoonRotation * 0.7, [1, 0, 0]);
+  glMatrix.mat4.rotate(spoonModelViewMatrix, spoonModelViewMatrix, spoonRotation, [0, 1, 0]);
+  glMatrix.mat4.rotate(spoonModelViewMatrix, spoonModelViewMatrix, spoonRotation * 0.7, [1, 0, 0]);
 
-  const normalMatrix = mat4.create();
-  mat4.invert(normalMatrix, spoonModelViewMatrix);
-  mat4.transpose(normalMatrix, normalMatrix);
+  const normalMatrix = glMatrix.mat4.create();
+  glMatrix.mat4.invert(normalMatrix, spoonModelViewMatrix);
+  glMatrix.mat4.transpose(normalMatrix, normalMatrix);
 
   gl.useProgram(programInfo.program); // Switch to spoon shader
 
