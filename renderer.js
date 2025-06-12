@@ -1,9 +1,19 @@
+import { spoonModelData } from './spoon-model.js';
+
 // Module-local variables to store shared state
 let gl = null;
 let programInfo = null; // For spoon
 let buffers = null;     // For spoon
 let gridProgramInfo = null;
 let gridBuffers = null;
+
+// Camera variables
+let cameraX = 0.0;
+let cameraY = 0.0;
+let cameraZ = 0.0; // Initial camera position
+let cameraPitch = 0.0; // Radians, looking along -Z axis
+let cameraYaw = 0.0;   // Radians, no rotation around Y axis
+
 let spoonRotation = 0.0;
 let then = 0;
 let frameCount = 0;
@@ -24,10 +34,26 @@ function drawScene(deltaTime) {
     const projectionMatrix = glMatrix.mat4.create(); // glMatrix is global
     glMatrix.mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
 
+    // Calculate the view matrix using camera variables
+    const viewMatrix = glMatrix.mat4.create();
+    const cameraPosition = [cameraX, cameraY, cameraZ];
+    // Calculate lookAt point based on pitch and yaw
+    // For simplicity, let's assume a target point calculation.
+    // A more robust solution would involve quaternions or rotation matrices.
+    const lookAtX = cameraX + Math.sin(cameraYaw) * Math.cos(cameraPitch);
+    const lookAtY = cameraY + Math.sin(cameraPitch);
+    const lookAtZ = cameraZ - Math.cos(cameraYaw) * Math.cos(cameraPitch); // Assuming -Z is forward
+    const center = [lookAtX, lookAtY, lookAtZ];
+    const up = [0, 1, 0];
+    glMatrix.mat4.lookAt(viewMatrix, cameraPosition, center, up);
+
     // --- Draw Grid ---
+    const gridModelMatrix = glMatrix.mat4.create();
+    glMatrix.mat4.translate(gridModelMatrix, gridModelMatrix, [-0.0, -1.5, -6.0]); // Position grid slightly lower
+    glMatrix.mat4.rotate(gridModelMatrix, gridModelMatrix, Math.PI / 10, [1, 0, 0]); // Rotate grid
+
     const gridModelViewMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.translate(gridModelViewMatrix, gridModelViewMatrix, [-0.0, -1.5, -6.0]); // Position grid slightly lower
-    glMatrix.mat4.rotate(gridModelViewMatrix, gridModelViewMatrix, Math.PI / 10, [1, 0, 0]); // Rotate grid
+    glMatrix.mat4.multiply(gridModelViewMatrix, viewMatrix, gridModelMatrix);
 
     gl.useProgram(gridProgramInfo.program);
     gl.uniformMatrix4fv(gridProgramInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
@@ -53,15 +79,18 @@ function drawScene(deltaTime) {
     // --- End Draw Grid ---
 
     // --- Draw Spoon ---
-    const spoonModelViewMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.translate(spoonModelViewMatrix, spoonModelViewMatrix, [-0.0, 0.0, -6.0]);
-
+    const spoonModelMatrix = glMatrix.mat4.create();
+    // Original spoon translations and rotations form its model matrix
+    glMatrix.mat4.translate(spoonModelMatrix, spoonModelMatrix, [-0.0, 0.0, -6.0]);
     spoonRotation += deltaTime * 0.5; // Update spoonRotation
-    glMatrix.mat4.rotate(spoonModelViewMatrix, spoonModelViewMatrix, spoonRotation, [0, 1, 0]);
-    glMatrix.mat4.rotate(spoonModelViewMatrix, spoonModelViewMatrix, spoonRotation * 0.7, [1, 0, 0]);
+    glMatrix.mat4.rotate(spoonModelMatrix, spoonModelMatrix, spoonRotation, [0, 1, 0]);
+    glMatrix.mat4.rotate(spoonModelMatrix, spoonModelMatrix, spoonRotation * 0.7, [1, 0, 0]);
+
+    const spoonModelViewMatrix = glMatrix.mat4.create();
+    glMatrix.mat4.multiply(spoonModelViewMatrix, viewMatrix, spoonModelMatrix);
 
     const normalMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.invert(normalMatrix, spoonModelViewMatrix);
+    glMatrix.mat4.invert(normalMatrix, spoonModelViewMatrix); // Normal matrix derived from model-view
     glMatrix.mat4.transpose(normalMatrix, normalMatrix);
 
     gl.useProgram(programInfo.program); // Switch to spoon shader
@@ -71,7 +100,8 @@ function drawScene(deltaTime) {
     gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, normalMatrix);
 
     // Set new uniforms for specular lighting
-    gl.uniform3fv(programInfo.uniformLocations.uViewPosition, [0.0, 0.0, 0.0]); // Camera is at origin in view space
+    // uViewPosition should be the actual camera position in world space for lighting calculations
+    gl.uniform3fv(programInfo.uniformLocations.uViewPosition, cameraPosition);
     gl.uniform3fv(programInfo.uniformLocations.uSpecularColor, [1.0, 1.0, 1.0]); // White specular highlights
     gl.uniform1f(programInfo.uniformLocations.uShininess, 32.0); // Shininess factor
 
@@ -111,7 +141,8 @@ function drawScene(deltaTime) {
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
     {
-      const vertexCount = 48; // This should ideally come from spoonModelData.indices.length / (vertices per face * faces)
+      // Use the actual length of the indices array from the imported spoonModelData
+      const vertexCount = spoonModelData.indices.length;
       const type = gl.UNSIGNED_SHORT;
       const offset = 0;
       gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
@@ -162,4 +193,30 @@ function initRenderer(context) {
   console.log("renderer: Initialized with context:", context);
 }
 
-export { initRenderer, render };
+// Camera control functions
+const MAX_PITCH = Math.PI / 2 - 0.01; // Max pitch: 89 degrees
+const MIN_PITCH = -Math.PI / 2 + 0.01; // Min pitch: -89 degrees
+
+function adjustCameraPitch(delta) {
+  cameraPitch += delta;
+  // Clamp pitch
+  if (cameraPitch > MAX_PITCH) {
+    cameraPitch = MAX_PITCH;
+  } else if (cameraPitch < MIN_PITCH) {
+    cameraPitch = MIN_PITCH;
+  }
+}
+
+function adjustCameraYaw(delta) {
+  cameraYaw += delta;
+  // Yaw can wrap around, so no clamping needed unless specific behavior is desired
+}
+
+function updateCameraZoom(delta) {
+  cameraZ += delta;
+  // Optional: Add clamping for zoom if needed
+  // if (cameraZ < someMinZoom) cameraZ = someMinZoom;
+  // if (cameraZ > someMaxZoom) cameraZ = someMaxZoom;
+}
+
+export { initRenderer, render, adjustCameraPitch, adjustCameraYaw, updateCameraZoom };
