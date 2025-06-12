@@ -50,6 +50,35 @@ const fs = require('fs');
     }
   }
 
+  // TODO: Enhance success condition for more robust testing.
+  // The current `successConditionMet` only checks if the background turned green,
+  // which indicates the rendering loop is running, but not necessarily that the
+  // spoon (or other objects) are visible.
+  // For a more thorough test, consider implementing pixel checking:
+  // 1. Stop or control spoon animation to have a predictable scene.
+  // 2. Use page.evaluate() to call gl.readPixels() on the canvas context
+  //    at an expected location of the spoon.
+  // 3. Analyze the returned pixel color to confirm it's not the background color.
+  //    Example:
+  //    const pixelData = await page.evaluate(() => {
+  //      const gl = document.querySelector('#glCanvas').getContext('webgl');
+  //      if (!gl) return null;
+  //      const x = gl.canvas.width / 2; // Example: center pixel
+  //      const y = gl.canvas.height / 2;
+  //      const pixels = new Uint8Array(4);
+  //      gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  //      return Array.from(pixels); // [R, G, B, A]
+  //    });
+  //    if (pixelData) {
+  //      const isGreenBackground = pixelData[0] < 100 && pixelData[1] > 200 && pixelData[2] < 100;
+  //      if (!isGreenBackground) {
+  //        console.log("Pixel check suggests an object is rendered on the green background.");
+  //        // Potentially update a more robust success condition here.
+  //      } else {
+  //        console.log("Pixel check suggests only green background is visible at the center.");
+  //      }
+  //    }
+  // This would require careful coordination of the spoon's expected position and color.
   await browser.close();
 
   const output = {
