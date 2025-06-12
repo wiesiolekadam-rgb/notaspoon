@@ -70,6 +70,11 @@ function drawScene(deltaTime) {
     gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, spoonModelViewMatrix);
     gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, normalMatrix);
 
+    // Set new uniforms for specular lighting
+    gl.uniform3fv(programInfo.uniformLocations.uViewPosition, [0.0, 0.0, 0.0]); // Camera is at origin in view space
+    gl.uniform3fv(programInfo.uniformLocations.uSpecularColor, [1.0, 1.0, 1.0]); // White specular highlights
+    gl.uniform1f(programInfo.uniformLocations.uShininess, 32.0); // Shininess factor
+
     {
       const numComponents = 3;
       const type = gl.FLOAT;
