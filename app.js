@@ -3,7 +3,7 @@ import { initWebGL } from './webgl-setup.js';
 import { initShaderProgram } from './shader-utils.js';
 import { spoonModelData } from './spoon-model.js';
 import { createGridVertices } from './grid-model.js';
-import { initRenderer, render as importedRender } from './renderer.js';
+import { initRenderer, render as importedRender, adjustCameraPitch, adjustCameraYaw, updateCameraZoom } from './renderer.js';
 
 let gl = null;
 let programInfo = null;
@@ -175,6 +175,61 @@ function main() {
   // Start the animation loop using the imported render function
   requestAnimationFrame(importedRender);
   console.log("main: WebGL initialization complete.");
+
+  // Add mouse event listeners for camera control
+  const canvas = gl.canvas;
+  let isMouseDown = false;
+  // Store last mouse position to calculate delta manually if movementX/Y is not preferred
+  // let lastMouseX = -1;
+  // let lastMouseY = -1;
+
+  const MOUSE_SENSITIVITY_YAW = 0.005; // Adjust as needed
+  const MOUSE_SENSITIVITY_PITCH = 0.005; // Adjust as needed
+  const WHEEL_SENSITIVITY_ZOOM = 0.05; // Adjust as needed
+
+  canvas.addEventListener('mousedown', (event) => {
+    if (event.button === 0) { // Left mouse button
+      isMouseDown = true;
+      // lastMouseX = event.clientX;
+      // lastMouseY = event.clientY;
+    }
+  });
+
+  canvas.addEventListener('mouseup', (event) => {
+    if (event.button === 0) { // Left mouse button
+      isMouseDown = false;
+    }
+  });
+
+  canvas.addEventListener('mousemove', (event) => {
+    if (isMouseDown) {
+      // Using movementX/Y is simpler as it provides the delta directly
+      const deltaYaw = event.movementX * MOUSE_SENSITIVITY_YAW;
+      const deltaPitch = event.movementY * MOUSE_SENSITIVITY_PITCH;
+
+      adjustCameraYaw(deltaYaw);
+      adjustCameraPitch(deltaPitch);
+
+      // If not using movementX/Y:
+      // if (lastMouseX !== -1) {
+      //   const deltaX = event.clientX - lastMouseX;
+      //   const deltaY = event.clientY - lastMouseY;
+      //   adjustCameraYaw(deltaX * MOUSE_SENSITIVITY_YAW);
+      //   adjustCameraPitch(deltaY * MOUSE_SENSITIVITY_PITCH);
+      // }
+      // lastMouseX = event.clientX;
+      // lastMouseY = event.clientY;
+    }
+  });
+
+  canvas.addEventListener('wheel', (event) => {
+    event.preventDefault(); // Prevent default page scrolling
+    const deltaZoom = event.deltaY * WHEEL_SENSITIVITY_ZOOM;
+    updateCameraZoom(deltaZoom);
+  });
+
+  // Prevent context menu on right-click, if desired
+  canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 }
 
 //
