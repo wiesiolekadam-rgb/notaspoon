@@ -6,13 +6,18 @@ let buffers = null;
 let gridProgramInfo = null; // For the grid
 let gridBuffers = null;     // For the grid
 let then = 0;
+let frameCount = 0;
+let successSignaled = false;
 
 // Basic WebGL setup
 function main() {
+  console.log("main: Starting WebGL initialization.");
   const canvas = document.querySelector("#glCanvas");
   gl = canvas.getContext("webgl"); // Assign to global gl
+  console.log("main: WebGL context gl:", gl);
 
   if (gl === null) {
+    console.error("main: Unable to initialize WebGL. Your browser or machine may not support it.");
     alert("Unable to initialize WebGL. Your browser or machine may not support it.");
     return;
   }
@@ -78,9 +83,11 @@ function main() {
       normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix'),
     },
   };
+  console.log("main: programInfo initialized:", programInfo);
 
   // Initialize buffers.
   buffers = initBuffers(gl); // Assign to global buffers
+  console.log("main: buffers initialized:", buffers);
 
   // --- Grid Setup ---
   // Shaders for the grid
@@ -108,11 +115,14 @@ function main() {
       modelViewMatrix: gl.getUniformLocation(gridShaderProgram, 'uModelViewMatrix'),
     },
   };
+  console.log("main: gridProgramInfo initialized:", gridProgramInfo);
   gridBuffers = initGridBuffers(gl);
+  console.log("main: gridBuffers initialized:", gridBuffers);
   // --- End Grid Setup ---
 
   // Start the animation loop
   requestAnimationFrame(render);
+  console.log("main: WebGL initialization complete.");
 }
 
 //
@@ -122,6 +132,7 @@ function main() {
 // have one object -- a simple three-dimensional spoon.
 //
 function initBuffers(gl) {
+  console.log("initBuffers: Initializing spoon buffers.");
 
   // Create a buffer for the spoon's positions.
   const positionBuffer = gl.createBuffer();
@@ -237,19 +248,23 @@ function initBuffers(gl) {
 
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
 
-  return {
+  const buffers = {
     position: positionBuffer,
     normal: normalBuffer,
     indices: indexBuffer,
   };
+  console.log("initBuffers: Spoon buffers initialized:", buffers);
+  return buffers;
 }
 
 //
 // Draw the scene.
 //
 function drawScene(deltaTime) { // gl, programInfo, buffers are now global
-  // Clear the canvas before we start drawing on it.
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  console.log("drawScene: Starting scene drawing for deltaTime:", deltaTime);
+  try {
+    // Clear the canvas before we start drawing on it.
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   // Create a perspective matrix (shared for both spoon and grid)
   const fieldOfView = 45 * Math.PI / 180;   // in radians
@@ -353,12 +368,17 @@ function drawScene(deltaTime) { // gl, programInfo, buffers are now global
     gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
   }
   // --- End Draw Spoon ---
+  console.log("drawScene: Scene drawing complete.");
+  } catch (e) {
+    console.error("drawScene: Error during scene drawing:", e);
+  }
 }
 
 //
 // Initialize a shader program, so WebGL knows how to draw our data
 //
 function initShaderProgram(gl, vsSource, fsSource) {
+  console.log("initShaderProgram: Initializing shader program.");
   const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
   const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
 
@@ -367,13 +387,16 @@ function initShaderProgram(gl, vsSource, fsSource) {
   gl.attachShader(shaderProgram, vertexShader);
   gl.attachShader(shaderProgram, fragmentShader);
   gl.linkProgram(shaderProgram);
+  console.log("initShaderProgram: Shader program created:", shaderProgram);
 
   // If creating the shader program failed, alert
   if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+    console.error('initShaderProgram: Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
     alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
     return null;
   }
 
+  console.log("initShaderProgram: Shader program initialization complete.");
   return shaderProgram;
 }
 
@@ -382,7 +405,9 @@ function initShaderProgram(gl, vsSource, fsSource) {
 // compiles it.
 //
 function loadShader(gl, type, source) {
+  console.log(`loadShader: Loading shader type: ${type}`);
   const shader = gl.createShader(type);
+  console.log(`loadShader: Shader object created for type: ${type}`, shader);
 
   // Send the source to the shader object
   gl.shaderSource(shader, source);
@@ -392,11 +417,13 @@ function loadShader(gl, type, source) {
 
   // See if it compiled successfully
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error(`loadShader: An error occurred compiling the shader type ${type}: ${gl.getShaderInfoLog(shader)}`);
     alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
     gl.deleteShader(shader);
     return null;
   }
 
+  console.log(`loadShader: Shader type ${type} compilation complete.`);
   return shader;
 }
 
@@ -404,6 +431,7 @@ function loadShader(gl, type, source) {
 // Initialize buffers for the grid lines
 //
 function initGridBuffers(gl) {
+  console.log("initGridBuffers: Initializing grid buffers.");
   const positionBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 
@@ -421,10 +449,12 @@ function initGridBuffers(gl) {
 
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lines), gl.STATIC_DRAW);
 
-  return {
+  const gridBuffers = {
     position: positionBuffer,
     vertexCount: lines.length / 3, // 3 components per vertex (x,y,z)
   };
+  console.log("initGridBuffers: Grid buffers initialized:", gridBuffers);
+  return gridBuffers;
 }
 
 // Global variable for animation timing (already declared, just for context)
@@ -432,13 +462,32 @@ function initGridBuffers(gl) {
 
 // Draw the scene repeatedly
 function render(now) {
-  now *= 0.001;  // convert to seconds
-  const deltaTime = now - then;
-  then = now;
+  console.log("render: Starting frame rendering for timestamp:", now);
+  try {
+    now *= 0.001;  // convert to seconds
+    const deltaTime = now - then;
+    then = now;
 
-  drawScene(deltaTime); // Pass deltaTime to drawScene
+    // If successful for a few frames, change background
+    if (!successSignaled && frameCount > 10) {
+      console.log('Success condition met: Changing clear color to green.');
+      // Check if gl context is available before using it
+      if (gl) {
+        gl.clearColor(0.2, 0.8, 0.2, 1.0); // A visible green
+      }
+      successSignaled = true;
+    }
+    frameCount++; // Increment after the check uses its previous value or just consistently
 
+    drawScene(deltaTime);
+
+  } catch (e) {
+    console.error("render: Error in render loop:", e);
+    // console.error("render: Error during drawScene call:", e); // Original line, replaced by more general error
+  }
+  // console.log("Exiting render function"); // from logging step - already have one at the end
   requestAnimationFrame(render);
+  console.log("render: Frame rendering complete, requested next frame.");
 }
 
 window.onload = main; // Call main to initialize everything
