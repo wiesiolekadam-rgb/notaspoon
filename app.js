@@ -68,7 +68,7 @@ function main() {
   `;
 
   // Fragment shader program
-  const fsSource = `
+  const fsSource = `precision mediump float;
     varying highp vec3 vLighting;       // Diffuse + Ambient from VS
     varying highp vec3 vNormal;         // Normal in view space
     varying highp vec3 vViewDirection;  // View direction in view space
