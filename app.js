@@ -14,6 +14,11 @@ function main() {
   console.log("main: Starting WebGL initialization.");
   const canvas = document.querySelector("#glCanvas");
   gl = canvas.getContext("webgl"); // Assign to global gl
+  // NOTE: WebGL rendering may fail in some environments (e.g., certain headless browsers or
+  // systems with restricted GPU access) due to issues like 'Failed to send GpuControl.CreateCommandBuffer'.
+  // If the canvas remains blank but console logs indicate the application logic is running,
+  // this might be an environmental limitation rather than an error in this script.
+  // The following code assumes a working WebGL context.
   console.log("main: WebGL context gl:", gl);
 
   if (gl === null) {
