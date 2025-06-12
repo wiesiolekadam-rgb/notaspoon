@@ -14,7 +14,7 @@ If the spoon and grid do not render but you see console logs from `app.js` (espe
 
 Here's a suggested roadmap for the next 5 iterations of the "notaspoon" project:
 
-1.  **Iteration 1: Refactor for Clarity and Modularity**
+1.  **Iteration 1: Refactor for Clarity and Modularity** - Done ✓
     *   Break down `app.js` into smaller, more focused modules (e.g., for WebGL setup, shader management, object creation, rendering loop).
     *   This will improve code readability, maintainability, and make it easier to implement future features.
 
