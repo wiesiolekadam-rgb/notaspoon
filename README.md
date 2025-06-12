@@ -18,7 +18,7 @@ Here's a suggested roadmap for the next 5 iterations of the "notaspoon" project:
     *   Break down `app.js` into smaller, more focused modules (e.g., for WebGL setup, shader management, object creation, rendering loop).
     *   This will improve code readability, maintainability, and make it easier to implement future features.
 
-2.  **Iteration 2: Enhance Spoon Model & Appearance**
+2.  **Iteration 2: Enhance Spoon Model & Appearance - Done ✓**
     *   Increase the detail of the 3D spoon model (e.g., more vertices, refined shape for a more realistic look).
     *   Improve its appearance through shader enhancements (e.g., more sophisticated material properties like specular highlights).
 

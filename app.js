@@ -36,34 +36,68 @@ function main() {
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
     uniform mat4 uNormalMatrix;
+    uniform vec3 uViewPosition; // Added for specular
 
     varying highp vec3 vLighting;
+    varying highp vec3 vNormal;         // Added for specular
+    varying highp vec3 vViewDirection;  // Added for specular
+    varying highp vec3 vFragPosition;   // Added for specular
 
     void main(void) {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
 
-      // Apply lighting effect
+      // Vertex position in view space
+      vec4 viewPosition = uModelViewMatrix * aVertexPosition;
+      vFragPosition = viewPosition.xyz; // No perspective divide needed for position itself
+
+      // Transform normal to view space
+      vNormal = normalize((uNormalMatrix * vec4(aVertexNormal, 0.0)).xyz);
+
+      // View direction (camera is at 0,0,0 in view space)
+      vViewDirection = normalize(uViewPosition - vFragPosition);
+
+      // Diffuse lighting calculation (existing)
       highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-      highp vec3 directionalLightColor = vec3(1, 1, 1);
+      highp vec3 directionalLightColor = vec3(1.0, 1.0, 1.0);
       highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
 
-      highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
-
-      highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+      // Use the transformed normal (vNormal) for diffuse calculation
+      highp float directional = max(dot(vNormal, directionalVector), 0.0);
       vLighting = ambientLight + (directionalLightColor * directional);
     }
   `;
 
   // Fragment shader program
   const fsSource = `
-    varying highp vec3 vLighting;
+    varying highp vec3 vLighting;       // Diffuse + Ambient from VS
+    varying highp vec3 vNormal;         // Normal in view space
+    varying highp vec3 vViewDirection;  // View direction in view space
+    // vFragPosition is available but not directly used if vViewDirection is pre-calculated
 
-    uniform samplerCube uSampler; // For environment mapping, if we add it later
+    uniform vec3 uSpecularColor;
+    uniform float uShininess;
+    // uniform samplerCube uSampler; // For environment mapping, if we add it later (commented out if not used)
 
     void main(void) {
-      // Silver-like color for the spoon
-      highp vec3 spoonColor = vec3(0.75, 0.75, 0.75);
-      gl_FragColor = vec4(spoonColor * vLighting, 1.0);
+      highp vec3 spoonBaseColor = vec3(0.75, 0.75, 0.75); // Silver-like color
+
+      // Light properties (should match VS or be uniforms)
+      highp vec3 lightDirection = normalize(vec3(0.85, 0.8, 0.75)); // Same as in VS
+      highp vec3 lightColor = vec3(1.0, 1.0, 1.0);
+
+      // Normalize interpolated vectors
+      highp vec3 normal = normalize(vNormal);
+      highp vec3 viewDir = normalize(vViewDirection);
+
+      // Blinn-Phong Specular calculation
+      highp vec3 halfwayDir = normalize(lightDirection + viewDir);
+      highp float specAngle = max(dot(normal, halfwayDir), 0.0);
+      highp float specularIntensity = pow(specAngle, uShininess);
+      highp vec3 specular = uSpecularColor * specularIntensity * lightColor;
+
+      // Combine: (Ambient + Diffuse) * BaseColor + Specular
+      // vLighting already contains Ambient + Diffuse component from VS
+      gl_FragColor = vec4(spoonBaseColor * vLighting + specular, 1.0);
     }
   `;
 
@@ -81,6 +115,10 @@ function main() {
       projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
       modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
       normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix'),
+      // New uniforms for specular lighting
+      uViewPosition: gl.getUniformLocation(shaderProgram, 'uViewPosition'),
+      uSpecularColor: gl.getUniformLocation(shaderProgram, 'uSpecularColor'),
+      uShininess: gl.getUniformLocation(shaderProgram, 'uShininess'),
     },
   };
   console.log("main: programInfo initialized:", programInfo);
