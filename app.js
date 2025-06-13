@@ -3,7 +3,7 @@ import { initWebGL } from './webgl-setup.js';
 import { initShaderProgram } from './shader-utils.js';
 import { spoonModelData } from './spoon-model.js';
 import { createGridVertices } from './grid-model.js';
-import { initRenderer, render as importedRender, adjustCameraPitch, adjustCameraYaw, updateCameraZoom } from './renderer.js';
+import { initRenderer, render as importedRender, adjustCameraPitch, adjustCameraYaw, updateCameraZoom, updateViewport } from './renderer.js';
 
 let gl = null;
 let programInfo = null;
@@ -172,6 +172,9 @@ function main() {
   };
   initRenderer(rendererContext);
 
+  // Set initial viewport
+  updateViewport();
+
   // Start the animation loop using the imported render function
   requestAnimationFrame(importedRender);
   console.log("main: WebGL initialization complete.");
@@ -230,6 +233,9 @@ function main() {
 
   // Prevent context menu on right-click, if desired
   canvas.addEventListener('contextmenu', (event) => event.preventDefault());
+
+  // Add window resize listener
+  window.addEventListener('resize', handleResize);
 }
 
 //
@@ -285,6 +291,21 @@ function initGridBuffers(gl) {
   };
   console.log("initGridBuffers: Grid buffers initialized:", gridBuffers);
   return gridBuffers;
+}
+
+//
+// Handle window resize events
+//
+function handleResize() {
+  if (!gl || !gl.canvas) {
+    console.warn("handleResize: gl or gl.canvas not available yet.");
+    return;
+  }
+  console.log("handleResize called");
+  gl.canvas.width = gl.canvas.clientWidth;
+  gl.canvas.height = gl.canvas.clientHeight;
+  console.log(`Canvas resized to: ${gl.canvas.width}x${gl.canvas.height}`);
+  updateViewport(); // Update viewport after resizing canvas
 }
 
 window.onload = main; // Call main to initialize everything
