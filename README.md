@@ -10,6 +10,26 @@ This application uses WebGL for 3D rendering. While the JavaScript and shader co
 
 If the spoon and grid do not render but you see console logs from `app.js` (especially the 'Success condition met' message), it's likely due to such an environmental constraint. The `glMatrix` library has been embedded in `index.html` to improve reliability across environments where fetching from CDNs might be restricted.
 
+## Running Locally
+
+To run this WebGL application, you need to serve the files through a local HTTP server. This is because modern browsers have security restrictions that prevent loading JavaScript modules (like `app.js`) and other assets directly from the local file system (`file:///...`).
+
+1.  **Start a simple HTTP server:**
+    Open your terminal or command prompt, navigate to the root directory of this project, and run the following command (if you have Python installed):
+    ```bash
+    python -m http.server 8000
+    ```
+    If port 8000 is in use, you can choose another port (e.g., 8080).
+
+2.  **Open in your browser:**
+    Once the server is running, open your web browser and navigate to:
+    ```
+    http://localhost:8000
+    ```
+    (If you used a different port, replace `8000` with that port number).
+
+    You should see the spoon and grid rendered in your browser.
+
 ## Roadmap
 
 Here's a suggested roadmap for the next 5 iterations of the "notaspoon" project:

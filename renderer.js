@@ -21,7 +21,8 @@ let successSignaled = false;
 
 // drawScene is defined before render, as render calls it.
 function drawScene(deltaTime) {
-  console.log("drawScene: Starting scene drawing for deltaTime:", deltaTime);
+  // console.log("drawScene: Starting scene drawing for deltaTime:", deltaTime); // Original log, replaced
+  console.log('drawScene called with deltaTime:', deltaTime);
   try {
     // Clear the canvas before we start drawing on it.
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -33,6 +34,7 @@ function drawScene(deltaTime) {
     const zFar = 100.0;
     const projectionMatrix = glMatrix.mat4.create(); // glMatrix is global
     glMatrix.mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+    console.log('Projection Matrix:', projectionMatrix);
 
     // Calculate the view matrix using camera variables
     const viewMatrix = glMatrix.mat4.create();
@@ -46,6 +48,7 @@ function drawScene(deltaTime) {
     const center = [lookAtX, lookAtY, lookAtZ];
     const up = [0, 1, 0];
     glMatrix.mat4.lookAt(viewMatrix, cameraPosition, center, up);
+    console.log('View Matrix:', viewMatrix);
 
     // --- Draw Grid ---
     const gridModelMatrix = glMatrix.mat4.create();
@@ -55,6 +58,10 @@ function drawScene(deltaTime) {
     const gridModelViewMatrix = glMatrix.mat4.create();
     glMatrix.mat4.multiply(gridModelViewMatrix, viewMatrix, gridModelMatrix);
 
+    console.log('Grid: Using program:', gridProgramInfo.program);
+    console.log('Grid: Uniform projectionMatrix location:', gridProgramInfo.uniformLocations.projectionMatrix);
+    console.log('Grid: Uniform modelViewMatrix location:', gridProgramInfo.uniformLocations.modelViewMatrix);
+    console.log('Grid: Attribute vertexPosition location:', gridProgramInfo.attribLocations.vertexPosition);
     gl.useProgram(gridProgramInfo.program);
     gl.uniformMatrix4fv(gridProgramInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
     gl.uniformMatrix4fv(gridProgramInfo.uniformLocations.modelViewMatrix, false, gridModelViewMatrix);
@@ -90,9 +97,25 @@ function drawScene(deltaTime) {
     glMatrix.mat4.multiply(spoonModelViewMatrix, viewMatrix, spoonModelMatrix);
 
     const normalMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.invert(normalMatrix, spoonModelViewMatrix); // Normal matrix derived from model-view
-    glMatrix.mat4.transpose(normalMatrix, normalMatrix);
+    const invertedModelViewMatrix = glMatrix.mat4.invert(glMatrix.mat4.create(), spoonModelViewMatrix);
 
+    if (!invertedModelViewMatrix) {
+      console.warn('Failed to invert spoonModelViewMatrix. Normal matrix might be incorrect.');
+      glMatrix.mat4.identity(normalMatrix); // Use identity matrix as a fallback
+    } else {
+      glMatrix.mat4.copy(normalMatrix, invertedModelViewMatrix);
+      glMatrix.mat4.transpose(normalMatrix, normalMatrix);
+    }
+
+    console.log('Spoon: Using program:', programInfo.program);
+    console.log('Spoon: Uniform projectionMatrix location:', programInfo.uniformLocations.projectionMatrix);
+    console.log('Spoon: Uniform modelViewMatrix location:', programInfo.uniformLocations.modelViewMatrix);
+    console.log('Spoon: Uniform normalMatrix location:', programInfo.uniformLocations.normalMatrix);
+    console.log('Spoon: Uniform uViewPosition location:', programInfo.uniformLocations.uViewPosition);
+    console.log('Spoon: Uniform uSpecularColor location:', programInfo.uniformLocations.uSpecularColor);
+    console.log('Spoon: Uniform uShininess location:', programInfo.uniformLocations.uShininess);
+    console.log('Spoon: Attribute vertexPosition location:', programInfo.attribLocations.vertexPosition);
+    console.log('Spoon: Attribute vertexNormal location:', programInfo.attribLocations.vertexNormal);
     gl.useProgram(programInfo.program); // Switch to spoon shader
 
     gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
@@ -155,14 +178,17 @@ function drawScene(deltaTime) {
 }
 
 function render(now) {
-  console.log("render: Starting frame rendering for timestamp:", now);
+  // console.log("render: Starting frame rendering for timestamp:", now); // Original log, replaced
+  console.log('render called with now:', now);
   try {
     now *= 0.001;  // convert to seconds
     const deltaTime = now - then;
+    console.log('Calculated deltaTime:', deltaTime);
     then = now; // Update 'then'
 
     if (!successSignaled && frameCount > 10) {
-      console.log('Success condition met: Changing clear color to green.');
+      // console.log('Success condition met: Changing clear color to green.'); // Original log, replaced
+      console.log('Success condition met at frameCount:', frameCount, ' Clearing color to green.');
       if (gl) {
         gl.clearColor(0.2, 0.8, 0.2, 1.0); // A visible green
       }
@@ -190,7 +216,12 @@ function initRenderer(context) {
   then = context.then;
   frameCount = context.frameCount;
   successSignaled = context.successSignaled;
-  console.log("renderer: Initialized with context:", context);
+  // console.log("renderer: Initialized with context:", context); // Original log, replaced by the ones below
+  console.log('Renderer initialized with gl context:', gl);
+  console.log('Renderer received programInfo:', JSON.stringify(programInfo, null, 2));
+  console.log('Renderer received buffers:', buffers);
+  console.log('Renderer received gridProgramInfo:', JSON.stringify(gridProgramInfo, null, 2));
+  console.log('Renderer received gridBuffers:', gridBuffers);
 }
 
 // Camera control functions
@@ -213,10 +244,18 @@ function adjustCameraYaw(delta) {
 }
 
 function updateCameraZoom(delta) {
+  const MIN_ZOOM = -20.0;
+  const MAX_ZOOM = -1.0; // Keep camera behind zNear and the object at z=-6
+
   cameraZ += delta;
-  // Optional: Add clamping for zoom if needed
-  // if (cameraZ < someMinZoom) cameraZ = someMinZoom;
-  // if (cameraZ > someMaxZoom) cameraZ = someMaxZoom;
+
+  if (cameraZ < MIN_ZOOM) {
+    cameraZ = MIN_ZOOM;
+  }
+  if (cameraZ > MAX_ZOOM) {
+    cameraZ = MAX_ZOOM;
+  }
+  console.log('Updated cameraZ after clamping:', cameraZ);
 }
 
 function updateViewport() {

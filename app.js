@@ -15,6 +15,7 @@ let gridBuffers = null;     // For the grid
 function main() {
   console.log("main: Starting WebGL initialization.");
   gl = initWebGL(); // Assign to global gl
+  console.log('WebGL context initialized:', gl);
 
   if (gl === null) {
     // initWebGL will show an alert, so just log and return here.
@@ -26,7 +27,7 @@ function main() {
   // If the canvas remains blank but console logs indicate the application logic is running,
   // this might be an environmental limitation rather than an error in this script.
   // The following code assumes a working WebGL context.
-  console.log("main: WebGL context gl:", gl);
+  // console.log("main: WebGL context gl:", gl); // Original log, replaced by the one above
 
   // Vertex shader program
   const vsSource = `
@@ -121,11 +122,13 @@ function main() {
       uShininess: gl.getUniformLocation(shaderProgram, 'uShininess'),
     },
   };
-  console.log("main: programInfo initialized:", programInfo);
+  // console.log("main: programInfo initialized:", programInfo); // Original log, replaced by the one below
+  console.log('Spoon shader programInfo:', JSON.stringify(programInfo, null, 2));
 
   // Initialize buffers.
   buffers = initBuffers(gl); // Assign to global buffers
-  console.log("main: buffers initialized:", buffers);
+  // console.log("main: buffers initialized:", buffers); // Original log, replaced by the one below
+  console.log('Spoon buffers:', buffers);
 
   // --- Grid Setup ---
   // Shaders for the grid
@@ -153,9 +156,11 @@ function main() {
       modelViewMatrix: gl.getUniformLocation(gridShaderProgram, 'uModelViewMatrix'),
     },
   };
-  console.log("main: gridProgramInfo initialized:", gridProgramInfo);
+  // console.log("main: gridProgramInfo initialized:", gridProgramInfo); // Original log, replaced by the one below
+  console.log('Grid shader programInfo:', JSON.stringify(gridProgramInfo, null, 2));
   gridBuffers = initGridBuffers(gl);
-  console.log("main: gridBuffers initialized:", gridBuffers);
+  // console.log("main: gridBuffers initialized:", gridBuffers); // Original log, replaced by the one below
+  console.log('Grid buffers:', gridBuffers);
   // --- End Grid Setup ---
 
   // Initialize the renderer module with shared state
