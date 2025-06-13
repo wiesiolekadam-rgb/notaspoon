@@ -219,4 +219,13 @@ function updateCameraZoom(delta) {
   // if (cameraZ > someMaxZoom) cameraZ = someMaxZoom;
 }
 
-export { initRenderer, render, adjustCameraPitch, adjustCameraYaw, updateCameraZoom };
+function updateViewport() {
+  if (gl && gl.canvas) {
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    console.log(`Viewport updated to: 0, 0, ${gl.canvas.width}, ${gl.canvas.height}`);
+  } else {
+    console.warn("updateViewport: gl or gl.canvas not available.");
+  }
+}
+
+export { initRenderer, render, adjustCameraPitch, adjustCameraYaw, updateCameraZoom, updateViewport };
