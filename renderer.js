@@ -1,4 +1,5 @@
 import { spoonModelData } from './spoon-model.js';
+import * as glMatrix from 'gl-matrix';
 
 // Module-local variables to store shared state
 let gl = null;
