@@ -1,19 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Spinning Spoon 3D</title>
-  <meta charset="utf-8">
-  <link rel="stylesheet" href="style.css">
-  <script type="importmap">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Purple Monster Viewer</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="importmap">
     {
-      "imports": {
-        "gl-matrix": "https://cdn.jsdelivr.net/npm/gl-matrix@3.4.3/+esm"
-      }
+        "imports": {
+            "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
     }
-  </script>
+    </script>
 </head>
 <body>
-  <canvas id="glCanvas" width="800" height="600"></canvas>
-  <script type="module" src="app.js"></script>
+    <div id="viewer-container"></div>
+    <script type="module" src="app.js"></script>
 </body>
 </html>

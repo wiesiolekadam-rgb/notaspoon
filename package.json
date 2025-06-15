@@ -1,5 +1,11 @@
 {
+  "name": "notaspoon",
+  "version": "1.0.0",
+  "description": "3D model viewer using Spark.js",
+  "type": "module",
+  "main": "app.js",
   "dependencies": {
-    "puppeteer": "^24.10.0"
+    "sparkjs": "^0.1.0",
+    "three": "^0.162.0"
   }
 }
