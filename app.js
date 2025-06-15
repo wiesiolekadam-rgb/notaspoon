@@ -3,6 +3,17 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { spoonModelData } from './spoon-model.js';
 
+const TAUNT_DISTANCE = 5.0;
+const DART_DISTANCE = 2.5;
+const SPOON_ROTATION_SPEED = 0.05; // Changed from 0.01
+const SPOON_DART_SPEED = 0.1;
+const MONSTER_MOVE_SPEED = 0.5;
+const MONSTER_MOVE_RANGE = 4.0; // Changed from 2.0
+
+let spoon, monsterModel;
+let MONSTER_INITIAL_X;
+let monsterMoveTime = 0;
+
 async function init() {
     // Create scene
     const scene = new THREE.Scene();
@@ -77,7 +88,7 @@ async function init() {
     });
 
     // Create spoon mesh
-    const spoon = new THREE.Mesh(spoonGeometry, spoonMaterial);
+    spoon = new THREE.Mesh(spoonGeometry, spoonMaterial); // Assign to top-level spoon variable
     spoon.castShadow = true;
     spoon.receiveShadow = true;
     spoon.position.set(-3, 0, 0); // Position spoon to the left
@@ -87,10 +98,10 @@ async function init() {
     const loader = new GLTFLoader();
     try {
         const gltf = await loader.loadAsync('3D_Purple_Monster.glb');
-        const model = gltf.scene;
+        monsterModel = gltf.scene; // Assign to top-level monsterModel variable
 
         // Enable shadows and enhance material properties
-        model.traverse((node) => {
+        monsterModel.traverse((node) => { // Use monsterModel here
             if (node.isMesh) {
                 node.castShadow = true;
                 node.receiveShadow = true;
@@ -102,19 +113,20 @@ async function init() {
         });
 
         // Center the model
-        const box = new THREE.Box3().setFromObject(model);
+        const box = new THREE.Box3().setFromObject(monsterModel); // Use monsterModel here
         const center = box.getCenter(new THREE.Vector3());
-        model.position.sub(center);
+        monsterModel.position.sub(center);
 
         // Scale the model
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
         const scale = 2 / maxDim;
-        model.scale.multiplyScalar(scale);
+        monsterModel.scale.multiplyScalar(scale);
 
         // Position monster to the right
-        model.position.set(3, 0, 0);
-        scene.add(model);
+        monsterModel.position.set(3, 0, 0);
+        MONSTER_INITIAL_X = monsterModel.position.x; // Store initial X position
+        scene.add(monsterModel);
     } catch (error) {
         console.error('Error loading model:', error);
     }
@@ -130,6 +142,27 @@ async function init() {
     function animate() {
         requestAnimationFrame(animate);
         controls.update();
+
+        if (monsterModel) {
+            monsterMoveTime += MONSTER_MOVE_SPEED * 0.016;
+            monsterModel.position.x = MONSTER_INITIAL_X + Math.sin(monsterMoveTime) * MONSTER_MOVE_RANGE;
+        }
+
+        if (spoon && monsterModel) {
+            const distance = spoon.position.distanceTo(monsterModel.position);
+            console.log(`Distance: ${distance.toFixed(2)}`);
+
+            if (distance < DART_DISTANCE) {
+                const dartDirection = new THREE.Vector3();
+                dartDirection.subVectors(spoon.position, monsterModel.position).normalize();
+                spoon.position.addScaledVector(dartDirection, SPOON_DART_SPEED);
+            } else if (distance > TAUNT_DISTANCE) {
+                spoon.rotation.y += SPOON_ROTATION_SPEED;
+            } else {
+                console.log("Action: IDLE");
+            }
+        }
+
         renderer.render(scene, camera);
     }
     animate();
