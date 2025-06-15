@@ -6,6 +6,25 @@ body {
     overflow: hidden;
     font-family: 'Arial', sans-serif;
     background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    animation: backgroundShift 10s ease-in-out infinite alternate;
+}
+
+@keyframes backgroundShift {
+    0% {
+        background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    }
+    25% {
+        background: linear-gradient(135deg, #2e1a2e, #3e1621, #460f34);
+    }
+    50% {
+        background: linear-gradient(135deg, #1a2e1a, #162138, #0f4634);
+    }
+    75% {
+        background: linear-gradient(135deg, #2e2e1a, #383821, #46460f);
+    }
+    100% {
+        background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    }
 }
 
 #viewer-container {
@@ -23,16 +42,87 @@ body {
 }
 
 .ui-panel {
-    background: rgba(26, 26, 46, 0.9);
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 15px;
-    padding: 20px;
+    background: linear-gradient(135deg, 
+        rgba(26, 26, 46, 0.95) 0%,
+        rgba(46, 26, 46, 0.9) 25%,
+        rgba(26, 46, 46, 0.9) 50%,
+        rgba(46, 46, 26, 0.9) 75%,
+        rgba(26, 26, 46, 0.95) 100%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 2px solid transparent;
+    border-image: linear-gradient(45deg, #ff6b6b, #4ecdc4, #ffe66d, #a8e6cf) 1;
+    border-radius: 20px;
+    padding: 25px;
     color: white;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    min-width: 250px;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 0 40px rgba(78, 205, 196, 0.1);
+    min-width: 280px;
     pointer-events: auto;
-    animation: slideInLeft 0.8s ease-out;
+    animation: slideInLeft 0.8s ease-out, panelGlow 4s ease-in-out infinite alternate;
+    position: relative;
+    overflow: hidden;
+}
+
+.ui-panel::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #ffe66d, #a8e6cf, #ff6b6b);
+    border-radius: 20px;
+    z-index: -1;
+    animation: borderRotate 3s linear infinite;
+}
+
+.ui-panel::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes panelGlow {
+    0% {
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            0 0 40px rgba(78, 205, 196, 0.1);
+    }
+    100% {
+        box-shadow: 
+            0 12px 40px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            0 0 60px rgba(255, 107, 107, 0.2);
+    }
+}
+
+@keyframes borderRotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+    50% {
+        left: 100%;
+    }
+    100% {
+        left: 100%;
+    }
 }
 
 @keyframes slideInLeft {

@@ -113,37 +113,94 @@ class AmazingApp {
     }
 
     createLighting() {
-        // Ambient light with color cycling
-        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        // Ultra-dynamic ambient light with rainbow cycling
+        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         this.scene.add(this.ambientLight);
 
-        // Main dramatic light
-        this.mainLight = new THREE.DirectionalLight(0xff6b6b, 3.0);
-        this.mainLight.position.set(10, 10, 5);
+        // EPIC main spotlight with ultra-high quality shadows
+        this.mainLight = new THREE.SpotLight(0xff6b6b, 8.0, 30, Math.PI * 0.3, 0.2, 2);
+        this.mainLight.position.set(0, 15, 0);
+        this.mainLight.target.position.set(0, 0, 0);
         this.mainLight.castShadow = true;
-        this.mainLight.shadow.mapSize.width = 2048;
-        this.mainLight.shadow.mapSize.height = 2048;
-        this.mainLight.shadow.camera.near = 0.5;
+        this.mainLight.shadow.mapSize.width = 4096;
+        this.mainLight.shadow.mapSize.height = 4096;
+        this.mainLight.shadow.camera.near = 0.1;
         this.mainLight.shadow.camera.far = 50;
-        this.mainLight.shadow.camera.left = -10;
-        this.mainLight.shadow.camera.right = 10;
-        this.mainLight.shadow.camera.top = 10;
-        this.mainLight.shadow.camera.bottom = -10;
+        this.mainLight.shadow.bias = -0.0001;
         this.scene.add(this.mainLight);
+        this.scene.add(this.mainLight.target);
 
-        // Accent lights for drama
-        this.accentLight1 = new THREE.PointLight(0x4ecdc4, 2.0, 20);
-        this.accentLight1.position.set(-8, 4, -8);
-        this.scene.add(this.accentLight1);
+        // Cinematic rim lighting system
+        this.rimLights = [];
+        const rimColors = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0xa8e6cf, 0xff8a80, 0x26c6da];
+        for (let i = 0; i < 6; i++) {
+            const rimLight = new THREE.DirectionalLight(rimColors[i], 2.5);
+            const angle = (i / 6) * Math.PI * 2;
+            rimLight.position.set(
+                Math.cos(angle) * 12,
+                8 + Math.sin(i) * 3,
+                Math.sin(angle) * 12
+            );
+            rimLight.target.position.set(0, 0, 0);
+            this.rimLights.push(rimLight);
+            this.scene.add(rimLight);
+            this.scene.add(rimLight.target);
+        }
 
-        this.accentLight2 = new THREE.PointLight(0xffe66d, 2.0, 20);
-        this.accentLight2.position.set(8, 4, 8);
-        this.scene.add(this.accentLight2);
+        // Magical floating light orbs
+        this.lightOrbs = [];
+        for (let i = 0; i < 8; i++) {
+            const orb = new THREE.PointLight(
+                new THREE.Color().setHSL(i / 8, 1.0, 0.7),
+                4.0,
+                15,
+                2
+            );
+            orb.position.set(
+                (Math.random() - 0.5) * 20,
+                Math.random() * 8 + 2,
+                (Math.random() - 0.5) * 20
+            );
+            
+            // Add glowing sphere visual
+            const orbGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+            const orbMaterial = new THREE.MeshBasicMaterial({
+                color: orb.color,
+                transparent: true,
+                opacity: 0.8
+            });
+            const orbMesh = new THREE.Mesh(orbGeometry, orbMaterial);
+            orb.add(orbMesh);
+            
+            this.lightOrbs.push({
+                light: orb,
+                originalPosition: orb.position.clone(),
+                phase: Math.random() * Math.PI * 2
+            });
+            this.scene.add(orb);
+        }
 
-        // Rim light
-        this.rimLight = new THREE.DirectionalLight(0xa8e6cf, 1.5);
-        this.rimLight.position.set(0, 5, -10);
-        this.scene.add(this.rimLight);
+        // Epic volumetric fog lights
+        this.fogLights = [];
+        for (let i = 0; i < 4; i++) {
+            const fogLight = new THREE.SpotLight(
+                new THREE.Color().setHSL(i / 4, 0.8, 0.6),
+                6.0,
+                25,
+                Math.PI * 0.4,
+                0.3,
+                1.5
+            );
+            fogLight.position.set(
+                (i % 2 === 0 ? -1 : 1) * 15,
+                12,
+                (i < 2 ? -1 : 1) * 15
+            );
+            fogLight.target.position.set(0, 0, 0);
+            this.fogLights.push(fogLight);
+            this.scene.add(fogLight);
+            this.scene.add(fogLight.target);
+        }
     }
 
     createEnvironment() {
@@ -310,36 +367,133 @@ class AmazingApp {
     }
 
     createParticleSystem() {
-        // Magical floating particles
-        const particleCount = 200;
+        // ULTRA-MAGICAL PARTICLE SYSTEMS
+        
+        // Main swirling particle galaxy
+        const particleCount = 500;
         const positions = new Float32Array(particleCount * 3);
         const colors = new Float32Array(particleCount * 3);
+        const sizes = new Float32Array(particleCount);
+        const phases = new Float32Array(particleCount);
 
         for (let i = 0; i < particleCount; i++) {
-            positions[i * 3] = (Math.random() - 0.5) * 20;
-            positions[i * 3 + 1] = Math.random() * 10;
-            positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
+            // Create spiral galaxy formation
+            const radius = Math.random() * 15 + 5;
+            const angle = Math.random() * Math.PI * 2;
+            const height = (Math.random() - 0.5) * 12;
+            
+            positions[i * 3] = Math.cos(angle) * radius;
+            positions[i * 3 + 1] = height;
+            positions[i * 3 + 2] = Math.sin(angle) * radius;
 
-            const color = new THREE.Color().setHSL(Math.random(), 0.8, 0.8);
+            const color = new THREE.Color().setHSL((i / particleCount + Math.random() * 0.1) % 1, 0.9, 0.8);
             colors[i * 3] = color.r;
             colors[i * 3 + 1] = color.g;
             colors[i * 3 + 2] = color.b;
+            
+            sizes[i] = Math.random() * 0.3 + 0.1;
+            phases[i] = Math.random() * Math.PI * 2;
         }
 
         const particleGeometry = new THREE.BufferGeometry();
         particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        particleGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+        particleGeometry.setAttribute('phase', new THREE.BufferAttribute(phases, 1));
 
         const particleMaterial = new THREE.PointsMaterial({
-            size: 0.1,
+            size: 0.2,
             vertexColors: true,
             transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending
+            opacity: 0.9,
+            blending: THREE.AdditiveBlending,
+            sizeAttenuation: true
         });
 
         this.particles = new THREE.Points(particleGeometry, particleMaterial);
         this.scene.add(this.particles);
+        
+        // Energy streams connecting light orbs
+        this.createEnergyStreams();
+        
+        // Floating magical dust
+        this.createMagicalDust();
+    }
+    
+    createEnergyStreams() {
+        this.energyStreams = [];
+        
+        for (let i = 0; i < 12; i++) {
+            const streamGeometry = new THREE.BufferGeometry();
+            const streamPositions = new Float32Array(100 * 3);
+            const streamColors = new Float32Array(100 * 3);
+            
+            for (let j = 0; j < 100; j++) {
+                const t = j / 99;
+                const radius = 8 + Math.sin(t * Math.PI * 4) * 2;
+                const angle = t * Math.PI * 8 + i * Math.PI / 6;
+                const height = Math.sin(t * Math.PI * 2) * 4;
+                
+                streamPositions[j * 3] = Math.cos(angle) * radius;
+                streamPositions[j * 3 + 1] = height;
+                streamPositions[j * 3 + 2] = Math.sin(angle) * radius;
+                
+                const color = new THREE.Color().setHSL((i / 12 + t * 0.5) % 1, 1.0, 0.6);
+                streamColors[j * 3] = color.r;
+                streamColors[j * 3 + 1] = color.g;
+                streamColors[j * 3 + 2] = color.b;
+            }
+            
+            streamGeometry.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
+            streamGeometry.setAttribute('color', new THREE.BufferAttribute(streamColors, 3));
+            
+            const streamMaterial = new THREE.PointsMaterial({
+                size: 0.15,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending
+            });
+            
+            const stream = new THREE.Points(streamGeometry, streamMaterial);
+            this.energyStreams.push({
+                mesh: stream,
+                phase: i * Math.PI / 6
+            });
+            this.scene.add(stream);
+        }
+    }
+    
+    createMagicalDust() {
+        const dustCount = 300;
+        const dustPositions = new Float32Array(dustCount * 3);
+        const dustColors = new Float32Array(dustCount * 3);
+        
+        for (let i = 0; i < dustCount; i++) {
+            dustPositions[i * 3] = (Math.random() - 0.5) * 40;
+            dustPositions[i * 3 + 1] = Math.random() * 15;
+            dustPositions[i * 3 + 2] = (Math.random() - 0.5) * 40;
+            
+            const color = new THREE.Color().setHSL(Math.random(), 0.6, 0.9);
+            dustColors[i * 3] = color.r;
+            dustColors[i * 3 + 1] = color.g;
+            dustColors[i * 3 + 2] = color.b;
+        }
+        
+        const dustGeometry = new THREE.BufferGeometry();
+        dustGeometry.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+        dustGeometry.setAttribute('color', new THREE.BufferAttribute(dustColors, 3));
+        
+        const dustMaterial = new THREE.PointsMaterial({
+            size: 0.05,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+        
+        this.magicalDust = new THREE.Points(dustGeometry, dustMaterial);
+        this.scene.add(this.magicalDust);
     }
 
     setupEventListeners() {
@@ -591,22 +745,149 @@ class AmazingApp {
             });
         }
         
-        // Animate particles
+        // ULTRA-AMAZING PARTICLE ANIMATIONS
+        
+        // Main particle galaxy spiral
         if (this.particles) {
             const positions = this.particles.geometry.attributes.position.array;
+            const colors = this.particles.geometry.attributes.color.array;
+            
             for (let i = 0; i < positions.length; i += 3) {
-                positions[i + 1] += Math.sin(time + positions[i]) * 0.01;
+                const index = i / 3;
+                const radius = Math.sqrt(positions[i] * positions[i] + positions[i + 2] * positions[i + 2]);
+                const angle = Math.atan2(positions[i + 2], positions[i]) + time * 0.3;
+                
+                // Spiral motion
+                positions[i] = Math.cos(angle) * radius;
+                positions[i + 2] = Math.sin(angle) * radius;
+                positions[i + 1] += Math.sin(time * 2 + index * 0.1) * 0.02;
+                
+                // Color shifting
+                const hue = (time * 0.1 + index * 0.01) % 1;
+                const color = new THREE.Color().setHSL(hue, 0.9, 0.8);
+                colors[i] = color.r;
+                colors[i + 1] = color.g;
+                colors[i + 2] = color.b;
             }
+            
             this.particles.geometry.attributes.position.needsUpdate = true;
-            this.particles.rotation.y += 0.002;
+            this.particles.geometry.attributes.color.needsUpdate = true;
         }
         
-        // Dynamic lighting
-        this.accentLight1.intensity = 2 + Math.sin(time * 2) * 0.5;
-        this.accentLight2.intensity = 2 + Math.cos(time * 1.5) * 0.5;
+        // Energy streams animation
+        if (this.energyStreams) {
+            this.energyStreams.forEach((streamData, streamIndex) => {
+                const stream = streamData.mesh;
+                const positions = stream.geometry.attributes.position.array;
+                const colors = stream.geometry.attributes.color.array;
+                const phase = streamData.phase + time * 2;
+                
+                for (let i = 0; i < positions.length; i += 3) {
+                    const t = (i / 3) / 99;
+                    const radius = 8 + Math.sin(t * Math.PI * 4 + phase) * 2;
+                    const angle = t * Math.PI * 8 + streamIndex * Math.PI / 6 + time * 0.5;
+                    const height = Math.sin(t * Math.PI * 2 + phase) * 4;
+                    
+                    positions[i] = Math.cos(angle) * radius;
+                    positions[i + 1] = height;
+                    positions[i + 2] = Math.sin(angle) * radius;
+                    
+                    // Dynamic color flow
+                    const hue = (streamIndex / 12 + t * 0.5 + time * 0.1) % 1;
+                    const color = new THREE.Color().setHSL(hue, 1.0, 0.6 + Math.sin(phase + t * Math.PI * 4) * 0.3);
+                    colors[i] = color.r;
+                    colors[i + 1] = color.g;
+                    colors[i + 2] = color.b;
+                }
+                
+                stream.geometry.attributes.position.needsUpdate = true;
+                stream.geometry.attributes.color.needsUpdate = true;
+            });
+        }
         
-        // Color cycling for main light
-        this.mainLight.color.setHSL((time * 0.1) % 1, 0.7, 0.6);
+        // Magical dust animation
+        if (this.magicalDust) {
+            const positions = this.magicalDust.geometry.attributes.position.array;
+            const colors = this.magicalDust.geometry.attributes.color.array;
+            
+            for (let i = 0; i < positions.length; i += 3) {
+                const index = i / 3;
+                
+                // Gentle floating motion
+                positions[i] += Math.sin(time + index * 0.1) * 0.005;
+                positions[i + 1] += Math.cos(time * 1.3 + index * 0.15) * 0.008;
+                positions[i + 2] += Math.sin(time * 0.7 + index * 0.2) * 0.005;
+                
+                // Wrap around boundaries
+                if (positions[i] > 20) positions[i] = -20;
+                if (positions[i] < -20) positions[i] = 20;
+                if (positions[i + 2] > 20) positions[i + 2] = -20;
+                if (positions[i + 2] < -20) positions[i + 2] = 20;
+                
+                // Shimmering colors
+                const hue = (time * 0.05 + index * 0.01) % 1;
+                const color = new THREE.Color().setHSL(hue, 0.6, 0.9);
+                colors[i] = color.r;
+                colors[i + 1] = color.g;
+                colors[i + 2] = color.b;
+            }
+            
+            this.magicalDust.geometry.attributes.position.needsUpdate = true;
+            this.magicalDust.geometry.attributes.color.needsUpdate = true;
+        }
+        
+        // EPIC DYNAMIC LIGHTING SYSTEM
+        
+        // Main spotlight with dramatic intensity pulsing
+        this.mainLight.intensity = 8 + Math.sin(time * 3) * 2;
+        this.mainLight.color.setHSL((time * 0.15) % 1, 0.8, 0.7);
+        
+        // Cinematic rim lighting dance
+        this.rimLights.forEach((light, i) => {
+            const phase = time * 2 + (i * Math.PI / 3);
+            light.intensity = 2.5 + Math.sin(phase) * 1.5;
+            light.color.setHSL((time * 0.1 + i * 0.16) % 1, 0.9, 0.6);
+            
+            // Rotate rim lights around the scene
+            const angle = (time * 0.5 + i * Math.PI / 3) % (Math.PI * 2);
+            light.position.set(
+                Math.cos(angle) * 12,
+                8 + Math.sin(time + i) * 3,
+                Math.sin(angle) * 12
+            );
+        });
+        
+        // Magical floating light orbs animation
+        this.lightOrbs.forEach((orbData, i) => {
+            const orb = orbData.light;
+            const phase = orbData.phase + time * 0.8;
+            
+            // Floating motion
+            orb.position.copy(orbData.originalPosition);
+            orb.position.x += Math.sin(phase) * 3;
+            orb.position.y += Math.cos(phase * 1.3) * 2;
+            orb.position.z += Math.sin(phase * 0.7) * 3;
+            
+            // Pulsing intensity
+            orb.intensity = 4 + Math.sin(phase * 2) * 2;
+            
+            // Color shifting
+            orb.color.setHSL((time * 0.2 + i * 0.125) % 1, 1.0, 0.7);
+            orb.children[0].material.color.copy(orb.color);
+        });
+        
+        // Epic volumetric fog lights
+        this.fogLights.forEach((light, i) => {
+            const phase = time * 1.5 + i * Math.PI * 0.5;
+            light.intensity = 6 + Math.sin(phase) * 3;
+            light.color.setHSL((time * 0.08 + i * 0.25) % 1, 0.8, 0.6);
+            
+            // Subtle movement for atmospheric effect
+            light.position.y = 12 + Math.sin(phase * 0.5) * 2;
+        });
+        
+        // Rainbow ambient light cycling
+        this.ambientLight.color.setHSL((time * 0.05) % 1, 0.3, 0.8);
         
         // Update controls and render
         this.controls.update();
