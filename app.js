@@ -92,7 +92,7 @@ class AmazingApp {
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.5;
+        this.renderer.toneMappingExposure = 1.0;
         document.getElementById('viewer-container').appendChild(this.renderer.domElement);
     }
 
@@ -105,9 +105,9 @@ class AmazingApp {
         // Bloom effect for magical glow
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            0.8, // strength
+            0.4, // strength
             0.2, // radius
-            0.9 // threshold
+            0.95 // threshold
         );
         this.composer.addPass(bloomPass);
         
@@ -117,11 +117,11 @@ class AmazingApp {
 
     createLighting() {
         // Ultra-dynamic ambient light with rainbow cycling
-        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        this.ambientLight = new THREE.AmbientLight(0x88aaff, 0.5);
         this.scene.add(this.ambientLight);
 
         // EPIC main spotlight with ultra-high quality shadows
-        this.mainLight = new THREE.SpotLight(0xff6b6b, 8.0, 30, Math.PI * 0.3, 0.2, 2);
+        this.mainLight = new THREE.SpotLight(0xffeedd, 3.0, 30, Math.PI * 0.3, 0.2, 2);
         this.mainLight.position.set(0, 15, 0);
         this.mainLight.target.position.set(0, 0, 0);
         this.mainLight.castShadow = true;
@@ -255,7 +255,7 @@ class AmazingApp {
         // ULTRA-MAGICAL PARTICLE SYSTEMS
         
         // Main swirling particle galaxy
-        const particleCount = 500;
+        const particleCount = 200;
         const positions = new Float32Array(particleCount * 3);
         const colors = new Float32Array(particleCount * 3);
         const sizes = new Float32Array(particleCount);
@@ -276,7 +276,7 @@ class AmazingApp {
             colors[i * 3 + 1] = color.g;
             colors[i * 3 + 2] = color.b;
             
-            sizes[i] = Math.random() * 0.3 + 0.1;
+            sizes[i] = Math.random() * 0.2 + 0.05;
             phases[i] = Math.random() * Math.PI * 2;
         }
 
@@ -287,11 +287,11 @@ class AmazingApp {
         particleGeometry.setAttribute('phase', new THREE.BufferAttribute(phases, 1));
 
         const particleMaterial = new THREE.PointsMaterial({
-            size: 0.2,
+            size: 0.15,
             vertexColors: true,
             transparent: true,
-            opacity: 0.9,
-            blending: THREE.AdditiveBlending,
+            opacity: 0.5,
+            blending: THREE.NormalBlending,
             sizeAttenuation: true
         });
 
@@ -569,13 +569,6 @@ class AmazingApp {
         }
         
         // DYNAMIC LIGHTING SYSTEM
-        
-        // Main spotlight with dramatic intensity pulsing
-        this.mainLight.intensity = 8 + Math.sin(time * 3) * 2;
-        this.mainLight.color.setHSL((time * 0.15) % 1, 0.8, 0.7);
-        
-        // Rainbow ambient light cycling
-        this.ambientLight.color.setHSL((time * 0.05) % 1, 0.3, 0.8);
         
         // Update controls and render
         this.controls.update();
