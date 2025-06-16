@@ -17,6 +17,9 @@ class AmazingApp {
         this.spoon = null;
         this.monster = null;
         this.particles = null;
+        // this.rimLights = []; // Removed
+        // this.lightOrbs = []; // Removed
+        // this.fogLights = []; // Removed
         this.gameState = {
             score: 0,
             isChasing: false,
@@ -102,9 +105,9 @@ class AmazingApp {
         // Bloom effect for magical glow
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            1.5, // strength
-            0.4, // radius
-            0.85 // threshold
+            0.8, // strength
+            0.2, // radius
+            0.9 // threshold
         );
         this.composer.addPass(bloomPass);
         
@@ -122,85 +125,13 @@ class AmazingApp {
         this.mainLight.position.set(0, 15, 0);
         this.mainLight.target.position.set(0, 0, 0);
         this.mainLight.castShadow = true;
-        this.mainLight.shadow.mapSize.width = 4096;
-        this.mainLight.shadow.mapSize.height = 4096;
+        this.mainLight.shadow.mapSize.width = 2048;
+        this.mainLight.shadow.mapSize.height = 2048;
         this.mainLight.shadow.camera.near = 0.1;
         this.mainLight.shadow.camera.far = 50;
         this.mainLight.shadow.bias = -0.0001;
         this.scene.add(this.mainLight);
         this.scene.add(this.mainLight.target);
-
-        // Cinematic rim lighting system
-        this.rimLights = [];
-        const rimColors = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0xa8e6cf, 0xff8a80, 0x26c6da];
-        for (let i = 0; i < 6; i++) {
-            const rimLight = new THREE.DirectionalLight(rimColors[i], 2.5);
-            const angle = (i / 6) * Math.PI * 2;
-            rimLight.position.set(
-                Math.cos(angle) * 12,
-                8 + Math.sin(i) * 3,
-                Math.sin(angle) * 12
-            );
-            rimLight.target.position.set(0, 0, 0);
-            this.rimLights.push(rimLight);
-            this.scene.add(rimLight);
-            this.scene.add(rimLight.target);
-        }
-
-        // Magical floating light orbs
-        this.lightOrbs = [];
-        for (let i = 0; i < 8; i++) {
-            const orb = new THREE.PointLight(
-                new THREE.Color().setHSL(i / 8, 1.0, 0.7),
-                4.0,
-                15,
-                2
-            );
-            orb.position.set(
-                (Math.random() - 0.5) * 20,
-                Math.random() * 8 + 2,
-                (Math.random() - 0.5) * 20
-            );
-            
-            // Add glowing sphere visual
-            const orbGeometry = new THREE.SphereGeometry(0.2, 16, 16);
-            const orbMaterial = new THREE.MeshBasicMaterial({
-                color: orb.color,
-                transparent: true,
-                opacity: 0.8
-            });
-            const orbMesh = new THREE.Mesh(orbGeometry, orbMaterial);
-            orb.add(orbMesh);
-            
-            this.lightOrbs.push({
-                light: orb,
-                originalPosition: orb.position.clone(),
-                phase: Math.random() * Math.PI * 2
-            });
-            this.scene.add(orb);
-        }
-
-        // Epic volumetric fog lights
-        this.fogLights = [];
-        for (let i = 0; i < 4; i++) {
-            const fogLight = new THREE.SpotLight(
-                new THREE.Color().setHSL(i / 4, 0.8, 0.6),
-                6.0,
-                25,
-                Math.PI * 0.4,
-                0.3,
-                1.5
-            );
-            fogLight.position.set(
-                (i % 2 === 0 ? -1 : 1) * 15,
-                12,
-                (i < 2 ? -1 : 1) * 15
-            );
-            fogLight.target.position.set(0, 0, 0);
-            this.fogLights.push(fogLight);
-            this.scene.add(fogLight);
-            this.scene.add(fogLight.target);
-        }
     }
 
     createEnvironment() {
@@ -218,52 +149,6 @@ class AmazingApp {
         this.ground.position.y = -2;
         this.ground.receiveShadow = true;
         this.scene.add(this.ground);
-
-        // Add floating geometric shapes for visual interest
-        this.createFloatingShapes();
-    }
-
-    createFloatingShapes() {
-        const shapes = [];
-        const geometries = [
-            new THREE.OctahedronGeometry(0.3),
-            new THREE.TetrahedronGeometry(0.4),
-            new THREE.IcosahedronGeometry(0.25)
-        ];
-
-        for (let i = 0; i < 15; i++) {
-            const geometry = geometries[Math.floor(Math.random() * geometries.length)];
-            const material = new THREE.MeshStandardMaterial({
-                color: new THREE.Color().setHSL(Math.random(), 0.7, 0.6),
-                metalness: 0.8,
-                roughness: 0.2,
-                transparent: true,
-                opacity: 0.7
-            });
-
-            const shape = new THREE.Mesh(geometry, material);
-            shape.position.set(
-                (Math.random() - 0.5) * 25,
-                Math.random() * 8 + 2,
-                (Math.random() - 0.5) * 25
-            );
-            shape.rotation.set(
-                Math.random() * Math.PI,
-                Math.random() * Math.PI,
-                Math.random() * Math.PI
-            );
-            shape.castShadow = true;
-            
-            shapes.push({
-                mesh: shape,
-                rotationSpeed: (Math.random() - 0.5) * 0.02,
-                floatSpeed: (Math.random() - 0.5) * 0.01
-            });
-            
-            this.scene.add(shape);
-        }
-        
-        this.floatingShapes = shapes;
     }
 
     createControls() {
@@ -412,88 +297,6 @@ class AmazingApp {
 
         this.particles = new THREE.Points(particleGeometry, particleMaterial);
         this.scene.add(this.particles);
-        
-        // Energy streams connecting light orbs
-        this.createEnergyStreams();
-        
-        // Floating magical dust
-        this.createMagicalDust();
-    }
-    
-    createEnergyStreams() {
-        this.energyStreams = [];
-        
-        for (let i = 0; i < 12; i++) {
-            const streamGeometry = new THREE.BufferGeometry();
-            const streamPositions = new Float32Array(100 * 3);
-            const streamColors = new Float32Array(100 * 3);
-            
-            for (let j = 0; j < 100; j++) {
-                const t = j / 99;
-                const radius = 8 + Math.sin(t * Math.PI * 4) * 2;
-                const angle = t * Math.PI * 8 + i * Math.PI / 6;
-                const height = Math.sin(t * Math.PI * 2) * 4;
-                
-                streamPositions[j * 3] = Math.cos(angle) * radius;
-                streamPositions[j * 3 + 1] = height;
-                streamPositions[j * 3 + 2] = Math.sin(angle) * radius;
-                
-                const color = new THREE.Color().setHSL((i / 12 + t * 0.5) % 1, 1.0, 0.6);
-                streamColors[j * 3] = color.r;
-                streamColors[j * 3 + 1] = color.g;
-                streamColors[j * 3 + 2] = color.b;
-            }
-            
-            streamGeometry.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
-            streamGeometry.setAttribute('color', new THREE.BufferAttribute(streamColors, 3));
-            
-            const streamMaterial = new THREE.PointsMaterial({
-                size: 0.15,
-                vertexColors: true,
-                transparent: true,
-                opacity: 0.7,
-                blending: THREE.AdditiveBlending
-            });
-            
-            const stream = new THREE.Points(streamGeometry, streamMaterial);
-            this.energyStreams.push({
-                mesh: stream,
-                phase: i * Math.PI / 6
-            });
-            this.scene.add(stream);
-        }
-    }
-    
-    createMagicalDust() {
-        const dustCount = 300;
-        const dustPositions = new Float32Array(dustCount * 3);
-        const dustColors = new Float32Array(dustCount * 3);
-        
-        for (let i = 0; i < dustCount; i++) {
-            dustPositions[i * 3] = (Math.random() - 0.5) * 40;
-            dustPositions[i * 3 + 1] = Math.random() * 15;
-            dustPositions[i * 3 + 2] = (Math.random() - 0.5) * 40;
-            
-            const color = new THREE.Color().setHSL(Math.random(), 0.6, 0.9);
-            dustColors[i * 3] = color.r;
-            dustColors[i * 3 + 1] = color.g;
-            dustColors[i * 3 + 2] = color.b;
-        }
-        
-        const dustGeometry = new THREE.BufferGeometry();
-        dustGeometry.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
-        dustGeometry.setAttribute('color', new THREE.BufferAttribute(dustColors, 3));
-        
-        const dustMaterial = new THREE.PointsMaterial({
-            size: 0.05,
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.6,
-            blending: THREE.AdditiveBlending
-        });
-        
-        this.magicalDust = new THREE.Points(dustGeometry, dustMaterial);
-        this.scene.add(this.magicalDust);
     }
 
     setupEventListeners() {
@@ -575,7 +378,7 @@ class AmazingApp {
     }
 
     createSparkleEffect(position) {
-        const sparkleCount = 20;
+        const sparkleCount = 10; // Changed from 20
         const sparkles = [];
         
         for (let i = 0; i < sparkleCount; i++) {
@@ -612,7 +415,7 @@ class AmazingApp {
         const animateSparkles = () => {
             sparkles.forEach((sparkle, index) => {
                 sparkle.position.add(sparkle.userData.velocity);
-                sparkle.userData.life -= 0.02;
+                sparkle.userData.life -= 0.04; // Changed from 0.02
                 sparkle.material.opacity = sparkle.userData.life;
                 
                 if (sparkle.userData.life <= 0) {
@@ -736,15 +539,6 @@ class AmazingApp {
         
         const time = this.clock.getElapsedTime();
         
-        // Animate floating shapes
-        if (this.floatingShapes) {
-            this.floatingShapes.forEach(shape => {
-                shape.mesh.rotation.x += shape.rotationSpeed;
-                shape.mesh.rotation.y += shape.rotationSpeed * 0.7;
-                shape.mesh.position.y += Math.sin(time + shape.mesh.position.x) * shape.floatSpeed;
-            });
-        }
-        
         // ULTRA-AMAZING PARTICLE ANIMATIONS
         
         // Main particle galaxy spiral
@@ -774,117 +568,11 @@ class AmazingApp {
             this.particles.geometry.attributes.color.needsUpdate = true;
         }
         
-        // Energy streams animation
-        if (this.energyStreams) {
-            this.energyStreams.forEach((streamData, streamIndex) => {
-                const stream = streamData.mesh;
-                const positions = stream.geometry.attributes.position.array;
-                const colors = stream.geometry.attributes.color.array;
-                const phase = streamData.phase + time * 2;
-                
-                for (let i = 0; i < positions.length; i += 3) {
-                    const t = (i / 3) / 99;
-                    const radius = 8 + Math.sin(t * Math.PI * 4 + phase) * 2;
-                    const angle = t * Math.PI * 8 + streamIndex * Math.PI / 6 + time * 0.5;
-                    const height = Math.sin(t * Math.PI * 2 + phase) * 4;
-                    
-                    positions[i] = Math.cos(angle) * radius;
-                    positions[i + 1] = height;
-                    positions[i + 2] = Math.sin(angle) * radius;
-                    
-                    // Dynamic color flow
-                    const hue = (streamIndex / 12 + t * 0.5 + time * 0.1) % 1;
-                    const color = new THREE.Color().setHSL(hue, 1.0, 0.6 + Math.sin(phase + t * Math.PI * 4) * 0.3);
-                    colors[i] = color.r;
-                    colors[i + 1] = color.g;
-                    colors[i + 2] = color.b;
-                }
-                
-                stream.geometry.attributes.position.needsUpdate = true;
-                stream.geometry.attributes.color.needsUpdate = true;
-            });
-        }
-        
-        // Magical dust animation
-        if (this.magicalDust) {
-            const positions = this.magicalDust.geometry.attributes.position.array;
-            const colors = this.magicalDust.geometry.attributes.color.array;
-            
-            for (let i = 0; i < positions.length; i += 3) {
-                const index = i / 3;
-                
-                // Gentle floating motion
-                positions[i] += Math.sin(time + index * 0.1) * 0.005;
-                positions[i + 1] += Math.cos(time * 1.3 + index * 0.15) * 0.008;
-                positions[i + 2] += Math.sin(time * 0.7 + index * 0.2) * 0.005;
-                
-                // Wrap around boundaries
-                if (positions[i] > 20) positions[i] = -20;
-                if (positions[i] < -20) positions[i] = 20;
-                if (positions[i + 2] > 20) positions[i + 2] = -20;
-                if (positions[i + 2] < -20) positions[i + 2] = 20;
-                
-                // Shimmering colors
-                const hue = (time * 0.05 + index * 0.01) % 1;
-                const color = new THREE.Color().setHSL(hue, 0.6, 0.9);
-                colors[i] = color.r;
-                colors[i + 1] = color.g;
-                colors[i + 2] = color.b;
-            }
-            
-            this.magicalDust.geometry.attributes.position.needsUpdate = true;
-            this.magicalDust.geometry.attributes.color.needsUpdate = true;
-        }
-        
-        // EPIC DYNAMIC LIGHTING SYSTEM
+        // DYNAMIC LIGHTING SYSTEM
         
         // Main spotlight with dramatic intensity pulsing
         this.mainLight.intensity = 8 + Math.sin(time * 3) * 2;
         this.mainLight.color.setHSL((time * 0.15) % 1, 0.8, 0.7);
-        
-        // Cinematic rim lighting dance
-        this.rimLights.forEach((light, i) => {
-            const phase = time * 2 + (i * Math.PI / 3);
-            light.intensity = 2.5 + Math.sin(phase) * 1.5;
-            light.color.setHSL((time * 0.1 + i * 0.16) % 1, 0.9, 0.6);
-            
-            // Rotate rim lights around the scene
-            const angle = (time * 0.5 + i * Math.PI / 3) % (Math.PI * 2);
-            light.position.set(
-                Math.cos(angle) * 12,
-                8 + Math.sin(time + i) * 3,
-                Math.sin(angle) * 12
-            );
-        });
-        
-        // Magical floating light orbs animation
-        this.lightOrbs.forEach((orbData, i) => {
-            const orb = orbData.light;
-            const phase = orbData.phase + time * 0.8;
-            
-            // Floating motion
-            orb.position.copy(orbData.originalPosition);
-            orb.position.x += Math.sin(phase) * 3;
-            orb.position.y += Math.cos(phase * 1.3) * 2;
-            orb.position.z += Math.sin(phase * 0.7) * 3;
-            
-            // Pulsing intensity
-            orb.intensity = 4 + Math.sin(phase * 2) * 2;
-            
-            // Color shifting
-            orb.color.setHSL((time * 0.2 + i * 0.125) % 1, 1.0, 0.7);
-            orb.children[0].material.color.copy(orb.color);
-        });
-        
-        // Epic volumetric fog lights
-        this.fogLights.forEach((light, i) => {
-            const phase = time * 1.5 + i * Math.PI * 0.5;
-            light.intensity = 6 + Math.sin(phase) * 3;
-            light.color.setHSL((time * 0.08 + i * 0.25) % 1, 0.8, 0.6);
-            
-            // Subtle movement for atmospheric effect
-            light.position.y = 12 + Math.sin(phase * 0.5) * 2;
-        });
         
         // Rainbow ambient light cycling
         this.ambientLight.color.setHSL((time * 0.05) % 1, 0.3, 0.8);
