@@ -16,6 +16,7 @@ class AmazingApp {
         this.controls = null;
         this.spoon = null;
         this.monster = null;
+        this.bunny = null;
         this.particles = null;
         // this.rimLights = []; // Removed
         // this.lightOrbs = []; // Removed
@@ -248,6 +249,54 @@ class AmazingApp {
             this.scene.add(this.monster);
         } catch (error) {
             console.error('Error loading monster model:', error);
+        }
+
+        // Load bunny model
+        try {
+            const bunnyGltf = await loader.loadAsync('bunny.glb'); // Assuming bunny.glb is in the root
+            this.bunny = bunnyGltf.scene;
+
+            this.bunny.traverse((node) => {
+                if (node.isMesh) {
+                    node.castShadow = true;
+                    node.receiveShadow = true;
+                    if (node.material) {
+                        if (node.material.clone && typeof node.material.envMapIntensity !== 'undefined') {
+                            node.material = node.material.clone();
+                            node.material.envMapIntensity = 1.5;
+                        } else if (typeof node.material.envMapIntensity !== 'undefined') {
+                            node.material.envMapIntensity = 1.5;
+                        }
+                        node.material.needsUpdate = true;
+                    }
+                }
+            });
+
+            // Center and scale bunny
+            const bunnyBox = new THREE.Box3().setFromObject(this.bunny);
+            const bunnyCenter = bunnyBox.getCenter(new THREE.Vector3());
+            this.bunny.position.sub(bunnyCenter);
+
+            const bunnySize = bunnyBox.getSize(new THREE.Vector3());
+            const desiredHeight = 1.5;
+            let bunnyScale = 1;
+            if (bunnySize.y > 0) {
+                bunnyScale = desiredHeight / bunnySize.y;
+            }
+            this.bunny.scale.set(bunnyScale, bunnyScale, bunnyScale);
+
+            this.bunny.position.set(0, 0, 2);
+
+            this.bunny.userData = {
+                originalPosition: this.bunny.position.clone(),
+                velocity: new THREE.Vector3(),
+                targetPosition: new THREE.Vector3(0, 0, 2)
+            };
+
+            this.scene.add(this.bunny);
+            console.log('Bunny model loaded and added to scene successfully.');
+        } catch (error) {
+            console.error('Error loading bunny model:', error);
         }
     }
 
@@ -484,9 +533,37 @@ class AmazingApp {
     }
 
     updateGameLogic() {
-        if (!this.gameState.isChasing || !this.spoon || !this.monster) return;
-        
-        const time = this.clock.getElapsedTime();
+        const time = this.clock.getElapsedTime(); // Get time at the beginning
+
+        if (this.bunny && this.bunny.userData) { // Check bunny and its userData exists
+            // Bunny random movement logic
+            if (Math.random() < 0.015) { // Adjust probability for target change frequency
+                this.bunny.userData.targetPosition.set(
+                    (Math.random() - 0.5) * 16,  // x range (-8 to +8)
+                    this.bunny.userData.originalPosition.y, // Base Y for bobbing
+                    (Math.random() - 0.5) * 16   // z range (-8 to +8)
+                );
+            }
+
+            // Smoothly move bunny towards its target position for X and Z
+            this.bunny.position.x = THREE.MathUtils.lerp(this.bunny.position.x, this.bunny.userData.targetPosition.x, 0.02);
+            this.bunny.position.z = THREE.MathUtils.lerp(this.bunny.position.z, this.bunny.userData.targetPosition.z, 0.02);
+
+            // Bobbing animation for Y position
+            // Ensure originalPosition.y is sensible (e.g., 0 if ground is -2 and bunny is 1.5 tall centered)
+            this.bunny.position.y = this.bunny.userData.originalPosition.y + (Math.sin(time * 2.5) * 0.15); // Adjust speed and amplitude
+
+            // Keep bunny in bounds (can be different from spoon/monster if desired)
+            this.bunny.position.x = Math.max(-10, Math.min(10, this.bunny.position.x));
+            this.bunny.position.z = Math.max(-10, Math.min(10, this.bunny.position.z));
+        }
+
+        // Existing game logic for spoon and monster
+        if (!this.gameState.isChasing || !this.spoon || !this.monster) {
+            // If not chasing, or main characters not loaded, maybe hide or disable UI elements?
+            // For now, just return as original code did.
+            return;
+        }
         
         // Update monster AI
         if (this.monster.userData.isChasing) {
