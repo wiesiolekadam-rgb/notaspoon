@@ -136,7 +136,7 @@ body {
     }
 }
 
-.score, .combo {
+.score, .combo, .excitement {
     font-size: 18px;
     font-weight: bold;
     margin-bottom: 10px;
@@ -147,11 +147,24 @@ body {
     background-clip: text;
 }
 
-.score span, .combo span {
+.score span, .combo span, .excitement span {
     color: #ffe66d;
     font-size: 22px;
     text-shadow: 0 0 10px rgba(255, 230, 109, 0.5);
     -webkit-text-fill-color: #ffe66d;
+}
+
+.power-up-status {
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    color: #1a1a2e;
+    padding: 8px 15px;
+    border-radius: 15px;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    margin: 10px 0;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    border: 2px solid #fff;
 }
 
 .controls {
@@ -223,6 +236,12 @@ button:active {
 
 #help-spoon {
     background: linear-gradient(45deg, #4ecdc4, #26c6da);
+}
+
+#mute-sound {
+    background: linear-gradient(45deg, #9c27b0, #673ab7);
+    font-size: 14px;
+    padding: 8px 15px;
 }
 
 .instructions {

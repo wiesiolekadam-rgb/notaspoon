@@ -17,16 +17,32 @@ class AmazingApp {
         this.spoon = null;
         this.monster = null;
         this.bunny = null;
-        // this.rimLights = []; // Removed
-        // this.lightOrbs = []; // Removed
-        // this.fogLights = []; // Removed
+        
+        // Light circles for characters
+        this.spoonLightCircle = null;
+        this.monsterLightCircle = null;
+        this.bunnyLightCircle = null;
+        
+        // Sound system
+        this.sounds = {};
+        this.audioContext = null;
+        this.audioInitialized = false;
+        
+        // Enhanced game features
+        this.particles = [];
+        this.powerUps = [];
+        this.screenShake = { intensity: 0, duration: 0 };
+        this.cameraOriginalPosition = new THREE.Vector3();
+        
         this.gameState = {
             score: 0,
             isChasing: false,
             spoonSpeed: 0.02,
             monsterSpeed: 0.015,
             lastDodge: 0,
-            combo: 0
+            combo: 0,
+            powerUpActive: false,
+            excitement: 0
         };
         this.clock = new THREE.Clock();
         this.raycaster = new THREE.Raycaster();
@@ -45,6 +61,8 @@ class AmazingApp {
         this.createControls();
         this.createUI();
         await this.loadModels();
+        this.createLightCircles();
+        this.initSoundSystem();
         this.setupEventListeners();
         this.startGameLoop();
         this.animate();
@@ -78,6 +96,7 @@ class AmazingApp {
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.camera.position.set(0, 5, 12);
         this.cameraTarget = new THREE.Vector3(0, 0, 0);
+        this.cameraOriginalPosition.copy(this.camera.position);
     }
 
     createRenderer() {
@@ -184,12 +203,19 @@ class AmazingApp {
             <div class="ui-panel">
                 <div class="score">Score: <span id="score">0</span></div>
                 <div class="combo">Combo: <span id="combo">0</span></div>
+                <div class="excitement">Excitement: <span id="excitement">0</span>%</div>
+                <div class="power-up-status" id="power-up-status" style="display: none;">
+                    ⚡ SPEED BOOST ACTIVE!
+                </div>
                 <div class="controls">
-                    <button id="start-chase">Start Chase!</button>
-                    <button id="help-spoon">Help Spoon!</button>
+                    <button id="start-chase">🏃 Start Chase!</button>
+                    <button id="help-spoon">✨ Help Spoon!</button>
+                    <button id="mute-sound">🔊 Mute</button>
                 </div>
                 <div class="instructions">
-                    Click "Help Spoon!" when monster gets close!
+                    🎯 Click "Help Spoon!" when monster gets close!<br>
+                    ⭐ Collect golden power-ups for speed boost!<br>
+                    🎵 Audio will start after first interaction
                 </div>
             </div>
         `;
@@ -312,7 +338,197 @@ class AmazingApp {
         }
     }
 
+    createLightCircles() {
+        // Spoon light circle (silver/blue)
+        const spoonCircleGeometry = new THREE.RingGeometry(1.2, 1.8, 32);
+        const spoonCircleMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00FFFF,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide
+        });
+        this.spoonLightCircle = new THREE.Mesh(spoonCircleGeometry, spoonCircleMaterial);
+        this.spoonLightCircle.rotation.x = -Math.PI / 2;
+        this.scene.add(this.spoonLightCircle);
 
+        // Monster light circle (red/purple)
+        const monsterCircleGeometry = new THREE.RingGeometry(1.5, 2.2, 32);
+        const monsterCircleMaterial = new THREE.MeshBasicMaterial({
+            color: 0xFF0080,
+            transparent: true,
+            opacity: 0.4,
+            side: THREE.DoubleSide
+        });
+        this.monsterLightCircle = new THREE.Mesh(monsterCircleGeometry, monsterCircleMaterial);
+        this.monsterLightCircle.rotation.x = -Math.PI / 2;
+        this.scene.add(this.monsterLightCircle);
+
+        // Bunny light circle (green/yellow)
+        const bunnyCircleGeometry = new THREE.RingGeometry(0.8, 1.3, 32);
+        const bunnyCircleMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00FF80,
+            transparent: true,
+            opacity: 0.25,
+            side: THREE.DoubleSide
+        });
+        this.bunnyLightCircle = new THREE.Mesh(bunnyCircleGeometry, bunnyCircleMaterial);
+        this.bunnyLightCircle.rotation.x = -Math.PI / 2;
+        this.scene.add(this.bunnyLightCircle);
+    }
+
+    async initSoundSystem() {
+        try {
+            // Initialize audio context
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Create sound effects using Web Audio API
+            this.sounds = {
+                chaseStart: this.createSound([440, 880, 1320], 0.5, 'sawtooth'),
+                dodge: this.createSound([880, 1760, 2640], 0.3, 'sine'),
+                combo: this.createSound([1320, 1760, 2200], 0.4, 'triangle'),
+                powerUp: this.createSound([660, 880, 1100, 1320], 0.6, 'square'),
+                background: this.createAmbientSound(),
+                monster: this.createSound([220, 110, 165], 0.2, 'sawtooth'),
+                sparkle: this.createSound([2640, 3520, 4400], 0.1, 'sine')
+            };
+            
+            this.audioInitialized = true;
+            console.log('Sound system initialized!');
+        } catch (error) {
+            console.warn('Audio initialization failed:', error);
+        }
+    }
+
+    createSound(frequencies, volume = 0.3, waveType = 'sine') {
+        return {
+            play: (duration = 0.3) => {
+                if (!this.audioInitialized) return;
+                
+                try {
+                    const gainNode = this.audioContext.createGain();
+                    gainNode.connect(this.audioContext.destination);
+                    gainNode.gain.setValueAtTime(volume, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+
+                    frequencies.forEach((freq, index) => {
+                        const oscillator = this.audioContext.createOscillator();
+                        oscillator.connect(gainNode);
+                        oscillator.type = waveType;
+                        oscillator.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                        oscillator.start(this.audioContext.currentTime + index * 0.1);
+                        oscillator.stop(this.audioContext.currentTime + duration);
+                    });
+                } catch (error) {
+                    console.warn('Sound playback failed:', error);
+                }
+            }
+        };
+    }
+
+    createAmbientSound() {
+        return {
+            start: () => {
+                if (!this.audioInitialized) return;
+                
+                try {
+                    const gainNode = this.audioContext.createGain();
+                    gainNode.connect(this.audioContext.destination);
+                    gainNode.gain.setValueAtTime(0.05, this.audioContext.currentTime);
+
+                    // Create multiple oscillators for ambient texture
+                    [80, 120, 160, 200].forEach((freq, index) => {
+                        const oscillator = this.audioContext.createOscillator();
+                        oscillator.connect(gainNode);
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(freq + Math.sin(Date.now() * 0.001) * 5, this.audioContext.currentTime);
+                        oscillator.start();
+                        
+                        setTimeout(() => {
+                            try {
+                                oscillator.stop();
+                            } catch (e) {}
+                        }, 30000); // 30 seconds
+                    });
+                } catch (error) {
+                    console.warn('Ambient sound failed:', error);
+                }
+            }
+        };
+    }
+
+    createPowerUp() {
+        const powerUpGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+        const powerUpMaterial = new THREE.MeshBasicMaterial({
+            color: 0xFFD700,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        const powerUp = new THREE.Mesh(powerUpGeometry, powerUpMaterial);
+        powerUp.position.set(
+            (Math.random() - 0.5) * 12,
+            1,
+            (Math.random() - 0.5) * 12
+        );
+        
+        powerUp.userData = {
+            type: 'speed',
+            collected: false,
+            rotationSpeed: 0.1,
+            bobSpeed: 0.05,
+            originalY: powerUp.position.y
+        };
+        
+        this.powerUps.push(powerUp);
+        this.scene.add(powerUp);
+        
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+            if (!powerUp.userData.collected) {
+                this.scene.remove(powerUp);
+                this.powerUps = this.powerUps.filter(p => p !== powerUp);
+            }
+        }, 10000);
+    }
+
+    createScreenShake(intensity = 0.1, duration = 0.3) {
+        this.screenShake.intensity = intensity;
+        this.screenShake.duration = duration;
+        this.cameraOriginalPosition.copy(this.camera.position);
+    }
+
+    createMagicalParticles(position, count = 15, color = 0x00FFFF) {
+        for (let i = 0; i < count; i++) {
+            const particle = new THREE.Mesh(
+                new THREE.SphereGeometry(0.02, 8, 8),
+                new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 1
+                })
+            );
+            
+            particle.position.copy(position);
+            particle.position.add(new THREE.Vector3(
+                (Math.random() - 0.5) * 3,
+                Math.random() * 2,
+                (Math.random() - 0.5) * 3
+            ));
+            
+            particle.userData = {
+                velocity: new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.3,
+                    Math.random() * 0.3 + 0.1,
+                    (Math.random() - 0.5) * 0.3
+                ),
+                life: 1.0,
+                gravity: -0.01
+            };
+            
+            this.particles.push(particle);
+            this.scene.add(particle);
+        }
+    }
 
     setupEventListeners() {
         // Window resize
@@ -332,6 +548,18 @@ class AmazingApp {
             this.helpSpoon();
         });
 
+        document.getElementById('mute-sound').addEventListener('click', (e) => {
+            if (this.audioContext) {
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                    e.target.textContent = '🔊 Mute';
+                } else {
+                    this.audioContext.suspend();
+                    e.target.textContent = '🔇 Unmute';
+                }
+            }
+        });
+
         // Mouse tracking for interactions
         window.addEventListener('mousemove', (event) => {
             this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -343,11 +571,31 @@ class AmazingApp {
         this.gameState.isChasing = true;
         this.gameState.score = 0;
         this.gameState.combo = 0;
+        this.gameState.excitement = 0;
         this.updateUI();
         
         if (this.monster) {
             this.monster.userData.isChasing = true;
         }
+        
+        // Play chase start sound
+        if (this.sounds.chaseStart) {
+            this.sounds.chaseStart.play(1.0);
+        }
+        
+        // Start ambient background sound
+        if (this.sounds.background) {
+            this.sounds.background.start();
+        }
+        
+        // Create initial power-up
+        this.createPowerUp();
+        
+        // Add excitement particles
+        this.createMagicalParticles(this.spoon.position, 20, 0x00FFFF);
+        
+        // Screen shake for drama
+        this.createScreenShake(0.05, 0.5);
         
         // Disable auto-rotate during chase
         this.controls.autoRotate = false;
@@ -364,6 +612,17 @@ class AmazingApp {
             this.gameState.score += points;
             this.gameState.combo++;
             this.gameState.lastDodge = Date.now();
+            this.gameState.excitement = Math.min(100, this.gameState.excitement + 20);
+            
+            // Play dodge sound
+            if (this.sounds.dodge) {
+                this.sounds.dodge.play(0.4);
+            }
+            
+            // Play sparkle sound
+            if (this.sounds.sparkle) {
+                this.sounds.sparkle.play(0.2);
+            }
             
             // Make spoon dodge dramatically
             this.spoon.userData.isEvading = true;
@@ -374,20 +633,34 @@ class AmazingApp {
             
             this.spoon.userData.targetPosition.copy(this.spoon.position).add(dodgeDirection);
             
-            // Create sparkle effect
+            // Enhanced sparkle effect
             this.createSparkleEffect(this.spoon.position);
+            this.createMagicalParticles(this.spoon.position, 25, 0x00FFFF);
             
             // Visual feedback effects
             this.createSuccessFlash();
             this.createFloatingScore(points);
+            
             if (this.gameState.combo > 1) {
                 this.createComboEffect();
+                if (this.sounds.combo) {
+                    this.sounds.combo.play(0.5);
+                }
+            }
+            
+            // Screen shake for impact
+            this.createScreenShake(0.08, 0.2);
+            
+            // Spawn power-up occasionally
+            if (Math.random() < 0.3) {
+                this.createPowerUp();
             }
             
             this.updateUI();
         } else {
             // Too far away, reset combo
             this.gameState.combo = 0;
+            this.gameState.excitement = Math.max(0, this.gameState.excitement - 5);
             this.updateUI();
         }
     }
@@ -490,6 +763,16 @@ class AmazingApp {
     updateUI() {
         document.getElementById('score').textContent = this.gameState.score;
         document.getElementById('combo').textContent = this.gameState.combo;
+        document.getElementById('excitement').textContent = Math.round(this.gameState.excitement);
+        
+        // Show/hide power-up status
+        const powerUpStatus = document.getElementById('power-up-status');
+        if (this.gameState.powerUpActive) {
+            powerUpStatus.style.display = 'block';
+            powerUpStatus.style.animation = 'pulse 0.5s ease-in-out infinite alternate';
+        } else {
+            powerUpStatus.style.display = 'none';
+        }
     }
 
     startGameLoop() {
@@ -500,6 +783,71 @@ class AmazingApp {
 
     updateGameLogic() {
         const time = this.clock.getElapsedTime(); // Get time at the beginning
+
+        // Update light circles to follow characters
+        if (this.spoon && this.spoonLightCircle) {
+            this.spoonLightCircle.position.copy(this.spoon.position);
+            this.spoonLightCircle.position.y = -0.1;
+            // Animate light circle
+            this.spoonLightCircle.rotation.z += 0.02;
+            this.spoonLightCircle.material.opacity = 0.3 + Math.sin(time * 3) * 0.1;
+        }
+
+        if (this.monster && this.monsterLightCircle) {
+            this.monsterLightCircle.position.copy(this.monster.position);
+            this.monsterLightCircle.position.y = -0.1;
+            // Monster circle pulses more aggressively during chase
+            this.monsterLightCircle.rotation.z -= 0.03;
+            const chaseIntensity = this.gameState.isChasing ? 0.2 : 0.1;
+            this.monsterLightCircle.material.opacity = 0.4 + Math.sin(time * 5) * chaseIntensity;
+            
+            // Change color based on distance to spoon
+            if (this.spoon) {
+                const distance = this.monster.position.distanceTo(this.spoon.position);
+                if (distance < 3) {
+                    this.monsterLightCircle.material.color.setHex(0xFF0000); // Red when close
+                } else {
+                    this.monsterLightCircle.material.color.setHex(0xFF0080); // Purple when far
+                }
+            }
+        }
+
+        if (this.bunny && this.bunnyLightCircle) {
+            this.bunnyLightCircle.position.copy(this.bunny.position);
+            this.bunnyLightCircle.position.y = -0.1;
+            this.bunnyLightCircle.rotation.z += 0.01;
+            this.bunnyLightCircle.material.opacity = 0.25 + Math.sin(time * 2) * 0.05;
+        }
+
+        // Update particles
+        this.particles.forEach((particle, index) => {
+            particle.position.add(particle.userData.velocity);
+            particle.userData.velocity.y += particle.userData.gravity;
+            particle.userData.life -= 0.02;
+            particle.material.opacity = particle.userData.life;
+            
+            if (particle.userData.life <= 0) {
+                this.scene.remove(particle);
+                this.particles.splice(index, 1);
+            }
+        });
+
+        // Update power-ups
+        this.powerUps.forEach((powerUp, index) => {
+            powerUp.rotation.y += powerUp.userData.rotationSpeed;
+            powerUp.position.y = powerUp.userData.originalY + Math.sin(time * 3 + index) * 0.3;
+            
+            // Check for collection by spoon
+            if (this.spoon && !powerUp.userData.collected) {
+                const distance = powerUp.position.distanceTo(this.spoon.position);
+                if (distance < 1) {
+                    powerUp.userData.collected = true;
+                    this.collectPowerUp(powerUp);
+                    this.scene.remove(powerUp);
+                    this.powerUps.splice(index, 1);
+                }
+            }
+        });
 
         if (this.bunny && this.bunny.userData) { // Check bunny and its userData exists
             // Bunny random movement logic
@@ -531,14 +879,16 @@ class AmazingApp {
             return;
         }
         
-        // Update monster AI
+        // Update monster AI with more intelligence
         if (this.monster.userData.isChasing) {
             const direction = new THREE.Vector3()
                 .subVectors(this.spoon.position, this.monster.position)
                 .normalize();
             
+            // Monster gets faster as excitement builds
+            const speedMultiplier = 1 + (this.gameState.excitement / 200);
             this.monster.userData.targetPosition.copy(this.monster.position)
-                .add(direction.multiplyScalar(this.gameState.monsterSpeed));
+                .add(direction.multiplyScalar(this.gameState.monsterSpeed * speedMultiplier));
             
             // Add some randomness to make it more interesting
             this.monster.userData.targetPosition.add(new THREE.Vector3(
@@ -546,9 +896,17 @@ class AmazingApp {
                 0,
                 (Math.random() - 0.5) * 0.1
             ));
+            
+            // Monster makes sounds when getting close
+            const distance = this.monster.position.distanceTo(this.spoon.position);
+            if (distance < 2 && Math.random() < 0.05) {
+                if (this.sounds.monster) {
+                    this.sounds.monster.play(0.3);
+                }
+            }
         }
         
-        // Update spoon behavior
+        // Update spoon behavior with power-up effects
         if (!this.spoon.userData.isEvading) {
             // Random movement when not evading
             if (Math.random() < 0.02) {
@@ -561,7 +919,8 @@ class AmazingApp {
         }
         
         // Smooth movement for both characters
-        this.spoon.position.lerp(this.spoon.userData.targetPosition, 0.05);
+        const spoonSpeed = this.gameState.powerUpActive ? 0.08 : 0.05;
+        this.spoon.position.lerp(this.spoon.userData.targetPosition, spoonSpeed);
         this.monster.position.lerp(this.monster.userData.targetPosition, 0.03);
         
         // Reset evasion state
@@ -577,28 +936,84 @@ class AmazingApp {
         this.monster.position.z = Math.max(-10, Math.min(10, this.monster.position.z));
     }
 
+    collectPowerUp(powerUp) {
+        // Play power-up sound
+        if (this.sounds.powerUp) {
+            this.sounds.powerUp.play(0.8);
+        }
+        
+        // Activate power-up effect
+        this.gameState.powerUpActive = true;
+        this.gameState.score += 50;
+        
+        // Create explosion effect
+        this.createMagicalParticles(powerUp.position, 30, 0xFFD700);
+        this.createScreenShake(0.1, 0.4);
+        
+        // Show power-up message
+        this.createFloatingScore("POWER UP!");
+        
+        // Power-up lasts 5 seconds
+        setTimeout(() => {
+            this.gameState.powerUpActive = false;
+        }, 5000);
+        
+        this.updateUI();
+    }
+
     animate() {
         requestAnimationFrame(() => this.animate());
         
         const time = this.clock.getElapsedTime();
         
+        // Handle screen shake
+        if (this.screenShake.duration > 0) {
+            this.screenShake.duration -= 0.016; // Assuming 60fps
+            
+            if (this.screenShake.duration > 0) {
+                // Apply random shake offset
+                const shakeX = (Math.random() - 0.5) * this.screenShake.intensity;
+                const shakeY = (Math.random() - 0.5) * this.screenShake.intensity;
+                const shakeZ = (Math.random() - 0.5) * this.screenShake.intensity;
+                
+                this.camera.position.copy(this.cameraOriginalPosition);
+                this.camera.position.add(new THREE.Vector3(shakeX, shakeY, shakeZ));
+            } else {
+                // Restore original position
+                this.camera.position.copy(this.cameraOriginalPosition);
+            }
+        }
 
-        
-        // DYNAMIC LIGHTING SYSTEM
+        // ENHANCED DYNAMIC LIGHTING SYSTEM
         if (this.ambientLight && this.leftLight && this.rightLight && this.centerLight) {
-            // Animate ambient light color cycling
-            const hue = (time * 0.1) % 1;
-            this.ambientLight.color.setHSL(hue, 0.3, 0.7);
+            // Animate ambient light color cycling with excitement
+            const excitementFactor = this.gameState.excitement / 100;
+            const hue = (time * (0.1 + excitementFactor * 0.2)) % 1;
+            this.ambientLight.color.setHSL(hue, 0.3 + excitementFactor * 0.3, 0.7);
             
-            // Animate point lights for dynamic lighting effects
-            this.leftLight.intensity = 2.0 + Math.sin(time * 1.5) * 0.5;
-            this.rightLight.intensity = 2.0 + Math.sin(time * 1.8 + Math.PI) * 0.5;
-            this.centerLight.intensity = 1.5 + Math.sin(time * 2.0 + Math.PI/2) * 0.3;
+            // Animate point lights for dynamic lighting effects - more intense during chase
+            const baseIntensity = this.gameState.isChasing ? 2.5 : 2.0;
+            this.leftLight.intensity = baseIntensity + Math.sin(time * 1.5) * (0.5 + excitementFactor);
+            this.rightLight.intensity = baseIntensity + Math.sin(time * 1.8 + Math.PI) * (0.5 + excitementFactor);
+            this.centerLight.intensity = (baseIntensity * 0.75) + Math.sin(time * 2.0 + Math.PI/2) * (0.3 + excitementFactor * 0.5);
             
-            // Subtle color shifting for point lights
-            this.leftLight.color.setHSL((time * 0.05) % 1, 0.3, 0.8);
-            this.rightLight.color.setHSL((time * 0.05 + 0.33) % 1, 0.3, 0.8);
-            this.centerLight.color.setHSL((time * 0.05 + 0.66) % 1, 0.3, 0.8);
+            // Enhanced color shifting for point lights
+            this.leftLight.color.setHSL((time * 0.05) % 1, 0.3 + excitementFactor * 0.4, 0.8);
+            this.rightLight.color.setHSL((time * 0.05 + 0.33) % 1, 0.3 + excitementFactor * 0.4, 0.8);
+            this.centerLight.color.setHSL((time * 0.05 + 0.66) % 1, 0.3 + excitementFactor * 0.4, 0.8);
+        }
+        
+        // Dynamic camera movement during chase
+        if (this.gameState.isChasing && this.spoon && this.monster) {
+            const distance = this.spoon.position.distanceTo(this.monster.position);
+            if (distance < 4) {
+                // Camera follows the action more closely
+                const midPoint = new THREE.Vector3()
+                    .addVectors(this.spoon.position, this.monster.position)
+                    .multiplyScalar(0.5);
+                
+                this.controls.target.lerp(midPoint, 0.02);
+            }
         }
         
         // Update controls and render
