@@ -253,7 +253,7 @@ class AmazingApp {
 
         // Load bunny model
         try {
-            const bunnyGltf = await loader.loadAsync('bunny.glb'); // Assuming bunny.glb is in the root
+            const bunnyGltf = await loader.loadAsync('Woven_Bunny_Doll.glb'); 
             this.bunny = bunnyGltf.scene;
 
             this.bunny.traverse((node) => {
