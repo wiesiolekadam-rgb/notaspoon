@@ -163,20 +163,7 @@ class AmazingApp {
     }
 
     createEnvironment() {
-        // Create reflective ground plane
-        const groundGeometry = new THREE.PlaneGeometry(30, 30);
-        const groundMaterial = new THREE.MeshStandardMaterial({
-            color: 0x222222,
-            metalness: 0.8,
-            roughness: 0.1,
-            envMapIntensity: 1.0
-        });
-        
-        this.ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        this.ground.rotation.x = -Math.PI / 2;
-        this.ground.position.y = -2;
-        this.ground.receiveShadow = true;
-        this.scene.add(this.ground);
+        // Ground plane removed to improve lighting
     }
 
     createControls() {
