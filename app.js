@@ -93,7 +93,7 @@ class AmazingApp {
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.0;
+        this.renderer.toneMappingExposure = 1.5;
         document.getElementById('viewer-container').appendChild(this.renderer.domElement);
     }
 
@@ -117,12 +117,12 @@ class AmazingApp {
     }
 
     createLighting() {
-        // Ultra-dynamic ambient light with rainbow cycling
-        this.ambientLight = new THREE.AmbientLight(0x88aaff, 0.5);
+        // Enhanced ambient light for better base illumination
+        this.ambientLight = new THREE.AmbientLight(0x88aaff, 1.2);
         this.scene.add(this.ambientLight);
 
         // EPIC main spotlight with ultra-high quality shadows
-        this.mainLight = new THREE.SpotLight(0xffeedd, 3.0, 30, Math.PI * 0.3, 0.2, 2);
+        this.mainLight = new THREE.SpotLight(0xffeedd, 4.0, 35, Math.PI * 0.4, 0.2, 2);
         this.mainLight.position.set(0, 15, 0);
         this.mainLight.target.position.set(0, 0, 0);
         this.mainLight.castShadow = true;
@@ -133,6 +133,33 @@ class AmazingApp {
         this.mainLight.shadow.bias = -0.0001;
         this.scene.add(this.mainLight);
         this.scene.add(this.mainLight.target);
+
+        // Add directional light for overall scene illumination
+        this.dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        this.dirLight.position.set(5, 10, 5);
+        this.dirLight.castShadow = true;
+        this.dirLight.shadow.mapSize.width = 1024;
+        this.dirLight.shadow.mapSize.height = 1024;
+        this.dirLight.shadow.camera.near = 0.1;
+        this.dirLight.shadow.camera.far = 50;
+        this.dirLight.shadow.camera.left = -20;
+        this.dirLight.shadow.camera.right = 20;
+        this.dirLight.shadow.camera.top = 20;
+        this.dirLight.shadow.camera.bottom = -20;
+        this.scene.add(this.dirLight);
+
+        // Add point lights for each object position to ensure proper illumination
+        this.leftLight = new THREE.PointLight(0xff9999, 2.0, 15);
+        this.leftLight.position.set(-4, 5, 0);
+        this.scene.add(this.leftLight);
+
+        this.rightLight = new THREE.PointLight(0x9999ff, 2.0, 15);
+        this.rightLight.position.set(4, 5, 0);
+        this.scene.add(this.rightLight);
+
+        this.centerLight = new THREE.PointLight(0x99ff99, 1.5, 12);
+        this.centerLight.position.set(0, 4, 2);
+        this.scene.add(this.centerLight);
     }
 
     createEnvironment() {
@@ -646,6 +673,21 @@ class AmazingApp {
         }
         
         // DYNAMIC LIGHTING SYSTEM
+        if (this.ambientLight && this.leftLight && this.rightLight && this.centerLight) {
+            // Animate ambient light color cycling
+            const hue = (time * 0.1) % 1;
+            this.ambientLight.color.setHSL(hue, 0.3, 0.7);
+            
+            // Animate point lights for dynamic lighting effects
+            this.leftLight.intensity = 2.0 + Math.sin(time * 1.5) * 0.5;
+            this.rightLight.intensity = 2.0 + Math.sin(time * 1.8 + Math.PI) * 0.5;
+            this.centerLight.intensity = 1.5 + Math.sin(time * 2.0 + Math.PI/2) * 0.3;
+            
+            // Subtle color shifting for point lights
+            this.leftLight.color.setHSL((time * 0.05) % 1, 0.3, 0.8);
+            this.rightLight.color.setHSL((time * 0.05 + 0.33) % 1, 0.3, 0.8);
+            this.centerLight.color.setHSL((time * 0.05 + 0.66) % 1, 0.3, 0.8);
+        }
         
         // Update controls and render
         this.controls.update();
