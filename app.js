@@ -17,7 +17,6 @@ class AmazingApp {
         this.spoon = null;
         this.monster = null;
         this.bunny = null;
-        this.particles = null;
         // this.rimLights = []; // Removed
         // this.lightOrbs = []; // Removed
         // this.fogLights = []; // Removed
@@ -46,7 +45,6 @@ class AmazingApp {
         this.createControls();
         this.createUI();
         await this.loadModels();
-        this.createParticleSystem();
         this.setupEventListeners();
         this.startGameLoop();
         this.animate();
@@ -314,53 +312,7 @@ class AmazingApp {
         }
     }
 
-    createParticleSystem() {
-        // ULTRA-MAGICAL PARTICLE SYSTEMS
-        
-        // Main swirling particle galaxy
-        const particleCount = 200;
-        const positions = new Float32Array(particleCount * 3);
-        const colors = new Float32Array(particleCount * 3);
-        const sizes = new Float32Array(particleCount);
-        const phases = new Float32Array(particleCount);
 
-        for (let i = 0; i < particleCount; i++) {
-            // Create spiral galaxy formation
-            const radius = Math.random() * 15 + 5;
-            const angle = Math.random() * Math.PI * 2;
-            const height = (Math.random() - 0.5) * 12;
-            
-            positions[i * 3] = Math.cos(angle) * radius;
-            positions[i * 3 + 1] = height;
-            positions[i * 3 + 2] = Math.sin(angle) * radius;
-
-            const color = new THREE.Color().setHSL((i / particleCount + Math.random() * 0.1) % 1, 0.9, 0.8);
-            colors[i * 3] = color.r;
-            colors[i * 3 + 1] = color.g;
-            colors[i * 3 + 2] = color.b;
-            
-            sizes[i] = Math.random() * 0.2 + 0.05;
-            phases[i] = Math.random() * Math.PI * 2;
-        }
-
-        const particleGeometry = new THREE.BufferGeometry();
-        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        particleGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-        particleGeometry.setAttribute('phase', new THREE.BufferAttribute(phases, 1));
-
-        const particleMaterial = new THREE.PointsMaterial({
-            size: 0.15,
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.5,
-            blending: THREE.NormalBlending,
-            sizeAttenuation: true
-        });
-
-        this.particles = new THREE.Points(particleGeometry, particleMaterial);
-        this.scene.add(this.particles);
-    }
 
     setupEventListeners() {
         // Window resize
@@ -630,34 +582,7 @@ class AmazingApp {
         
         const time = this.clock.getElapsedTime();
         
-        // ULTRA-AMAZING PARTICLE ANIMATIONS
-        
-        // Main particle galaxy spiral
-        if (this.particles) {
-            const positions = this.particles.geometry.attributes.position.array;
-            const colors = this.particles.geometry.attributes.color.array;
-            
-            for (let i = 0; i < positions.length; i += 3) {
-                const index = i / 3;
-                const radius = Math.sqrt(positions[i] * positions[i] + positions[i + 2] * positions[i + 2]);
-                const angle = Math.atan2(positions[i + 2], positions[i]) + time * 0.3;
-                
-                // Spiral motion
-                positions[i] = Math.cos(angle) * radius;
-                positions[i + 2] = Math.sin(angle) * radius;
-                positions[i + 1] += Math.sin(time * 2 + index * 0.1) * 0.02;
-                
-                // Color shifting
-                const hue = (time * 0.1 + index * 0.01) % 1;
-                const color = new THREE.Color().setHSL(hue, 0.9, 0.8);
-                colors[i] = color.r;
-                colors[i + 1] = color.g;
-                colors[i + 2] = color.b;
-            }
-            
-            this.particles.geometry.attributes.position.needsUpdate = true;
-            this.particles.geometry.attributes.color.needsUpdate = true;
-        }
+
         
         // DYNAMIC LIGHTING SYSTEM
         if (this.ambientLight && this.leftLight && this.rightLight && this.centerLight) {
