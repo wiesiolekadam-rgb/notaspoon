@@ -71,25 +71,11 @@ class AmazingApp {
     createScene() {
         this.scene = new THREE.Scene();
         
-        // Create stunning gradient background
-        const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
-        const context = canvas.getContext('2d');
+        // Set natural sky color as fallback
+        this.scene.background = new THREE.Color(0x87ceeb);
         
-        const gradient = context.createLinearGradient(0, 0, 0, 512);
-        gradient.addColorStop(0, '#1a1a2e');
-        gradient.addColorStop(0.5, '#16213e');
-        gradient.addColorStop(1, '#0f3460');
-        
-        context.fillStyle = gradient;
-        context.fillRect(0, 0, 512, 512);
-        
-        const texture = new THREE.CanvasTexture(canvas);
-        this.scene.background = texture;
-        
-        // Add fog for depth
-        this.scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
+        // Add atmospheric fog for depth and realism
+        this.scene.fog = new THREE.Fog(0xa0c4e8, 20, 80);
     }
 
     createCamera() {
@@ -134,53 +120,234 @@ class AmazingApp {
     }
 
     createLighting() {
-        // Enhanced ambient light for better base illumination
-        this.ambientLight = new THREE.AmbientLight(0x88aaff, 1.2);
+        // Enhanced ambient light for natural outdoor illumination
+        this.ambientLight = new THREE.AmbientLight(0xb8e8ff, 0.6);
         this.scene.add(this.ambientLight);
 
-        // EPIC main spotlight with ultra-high quality shadows
-        this.mainLight = new THREE.SpotLight(0xffeedd, 4.0, 35, Math.PI * 0.4, 0.2, 2);
-        this.mainLight.position.set(0, 15, 0);
-        this.mainLight.target.position.set(0, 0, 0);
-        this.mainLight.castShadow = true;
-        this.mainLight.shadow.mapSize.width = 2048;
-        this.mainLight.shadow.mapSize.height = 2048;
-        this.mainLight.shadow.camera.near = 0.1;
-        this.mainLight.shadow.camera.far = 50;
-        this.mainLight.shadow.bias = -0.0001;
-        this.scene.add(this.mainLight);
-        this.scene.add(this.mainLight.target);
+        // Sun-like directional light for primary illumination
+        this.sunLight = new THREE.DirectionalLight(0xffe8d4, 2.5);
+        this.sunLight.position.set(8, 15, 5);
+        this.sunLight.castShadow = true;
+        this.sunLight.shadow.mapSize.width = 2048;
+        this.sunLight.shadow.mapSize.height = 2048;
+        this.sunLight.shadow.camera.near = 0.1;
+        this.sunLight.shadow.camera.far = 50;
+        this.sunLight.shadow.camera.left = -25;
+        this.sunLight.shadow.camera.right = 25;
+        this.sunLight.shadow.camera.top = 25;
+        this.sunLight.shadow.camera.bottom = -25;
+        this.sunLight.shadow.bias = -0.0001;
+        this.scene.add(this.sunLight);
 
-        // Add directional light for overall scene illumination
-        this.dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-        this.dirLight.position.set(5, 10, 5);
-        this.dirLight.castShadow = true;
-        this.dirLight.shadow.mapSize.width = 1024;
-        this.dirLight.shadow.mapSize.height = 1024;
-        this.dirLight.shadow.camera.near = 0.1;
-        this.dirLight.shadow.camera.far = 50;
-        this.dirLight.shadow.camera.left = -20;
-        this.dirLight.shadow.camera.right = 20;
-        this.dirLight.shadow.camera.top = 20;
-        this.dirLight.shadow.camera.bottom = -20;
-        this.scene.add(this.dirLight);
+        // Hemisphere light for sky/ground illumination balance
+        this.hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x4a7c2a, 0.8);
+        this.hemiLight.position.set(0, 20, 0);
+        this.scene.add(this.hemiLight);
 
-        // Add point lights for each object position to ensure proper illumination
-        this.leftLight = new THREE.PointLight(0xff9999, 2.0, 15);
-        this.leftLight.position.set(-4, 5, 0);
-        this.scene.add(this.leftLight);
+        // Character highlighting lights that follow the characters
+        this.spoonHighlight = new THREE.PointLight(0x00ffff, 1.5, 8);
+        this.spoonHighlight.position.set(-4, 3, 0);
+        this.scene.add(this.spoonHighlight);
 
-        this.rightLight = new THREE.PointLight(0x9999ff, 2.0, 15);
-        this.rightLight.position.set(4, 5, 0);
-        this.scene.add(this.rightLight);
+        this.monsterHighlight = new THREE.PointLight(0xff4080, 1.5, 8);
+        this.monsterHighlight.position.set(4, 3, 0);
+        this.scene.add(this.monsterHighlight);
 
-        this.centerLight = new THREE.PointLight(0x99ff99, 1.5, 12);
-        this.centerLight.position.set(0, 4, 2);
-        this.scene.add(this.centerLight);
+        this.bunnyHighlight = new THREE.PointLight(0x80ff40, 1.0, 6);
+        this.bunnyHighlight.position.set(0, 2, 2);
+        this.scene.add(this.bunnyHighlight);
+
+        // Soft fill light to reduce harsh shadows
+        this.fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        this.fillLight.position.set(-8, 10, -5);
+        this.scene.add(this.fillLight);
     }
 
     createEnvironment() {
-        // Ground plane removed to improve lighting
+        // Create procedural grass field
+        this.createProceduralGrass();
+        
+        // Create beautiful sky background
+        this.createSkyBackground();
+        
+        // Add environmental elements
+        this.createBackgroundElements();
+    }
+
+    createProceduralGrass() {
+        // Create grass field with instanced geometry for performance
+        const grassBladeGeometry = new THREE.PlaneGeometry(0.1, 0.3);
+        const grassMaterial = new THREE.MeshLambertMaterial({
+            color: 0x4a7c2a,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.8
+        });
+
+        // Create grass instances
+        const grassCount = 2000;
+        const grassField = new THREE.InstancedMesh(grassBladeGeometry, grassMaterial, grassCount);
+        
+        const matrix = new THREE.Matrix4();
+        const position = new THREE.Vector3();
+        const rotation = new THREE.Euler();
+        const scale = new THREE.Vector3();
+
+        for (let i = 0; i < grassCount; i++) {
+            // Random position across the field
+            position.set(
+                (Math.random() - 0.5) * 30,
+                0,
+                (Math.random() - 0.5) * 30
+            );
+
+            // Random rotation
+            rotation.set(0, Math.random() * Math.PI * 2, 0);
+
+            // Random scale for variety
+            const scaleMultiplier = 0.5 + Math.random() * 1.5;
+            scale.set(scaleMultiplier, scaleMultiplier, scaleMultiplier);
+
+            matrix.compose(position, new THREE.Quaternion().setFromEuler(rotation), scale);
+            grassField.setMatrixAt(i, matrix);
+        }
+
+        grassField.instanceMatrix.needsUpdate = true;
+        grassField.castShadow = false;
+        grassField.receiveShadow = true;
+        this.scene.add(grassField);
+
+        // Store reference for animation
+        this.grassField = grassField;
+
+        // Create ground plane for shadows
+        const groundGeometry = new THREE.PlaneGeometry(50, 50);
+        const groundMaterial = new THREE.MeshLambertMaterial({
+            color: 0x2d4a1c,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.02;
+        ground.receiveShadow = true;
+        this.scene.add(ground);
+    }
+
+    createSkyBackground() {
+        // Create gradient sky using a large sphere
+        const skyGeometry = new THREE.SphereGeometry(200, 32, 32);
+        const skyMaterial = new THREE.ShaderMaterial({
+            vertexShader: `
+                varying vec3 vWorldPosition;
+                void main() {
+                    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                    vWorldPosition = worldPosition.xyz;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float time;
+                varying vec3 vWorldPosition;
+                
+                void main() {
+                    vec3 direction = normalize(vWorldPosition);
+                    float elevation = direction.y;
+                    
+                    // Create gradient from horizon to zenith
+                    vec3 horizonColor = vec3(0.9, 0.6, 0.3);
+                    vec3 zenithColor = vec3(0.1, 0.3, 0.8);
+                    
+                    // Add time-based color variation
+                    float timeOffset = sin(time * 0.1) * 0.1;
+                    horizonColor += timeOffset;
+                    zenithColor += timeOffset * 0.5;
+                    
+                    vec3 skyColor = mix(horizonColor, zenithColor, smoothstep(-0.2, 0.8, elevation));
+                    
+                    // Add some cloud-like noise
+                    float noise = sin(direction.x * 10.0 + time * 0.2) * sin(direction.z * 10.0 + time * 0.15) * 0.1;
+                    skyColor += noise * vec3(1.0, 1.0, 1.0);
+                    
+                    gl_FragColor = vec4(skyColor, 1.0);
+                }
+            `,
+            uniforms: {
+                time: { value: 0 }
+            },
+            side: THREE.BackSide
+        });
+
+        const sky = new THREE.Mesh(skyGeometry, skyMaterial);
+        this.scene.add(sky);
+        this.skyMaterial = skyMaterial;
+    }
+
+    createBackgroundElements() {
+        // Create floating orbs in the background
+        const orbCount = 20;
+        const orbGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+        
+        for (let i = 0; i < orbCount; i++) {
+            const orbMaterial = new THREE.MeshStandardMaterial({
+                color: new THREE.Color().setHSL(Math.random(), 0.7, 0.6),
+                emissive: new THREE.Color().setHSL(Math.random(), 0.5, 0.1),
+                transparent: true,
+                opacity: 0.6
+            });
+
+            const orb = new THREE.Mesh(orbGeometry, orbMaterial);
+            orb.position.set(
+                (Math.random() - 0.5) * 40,
+                2 + Math.random() * 8,
+                (Math.random() - 0.5) * 40
+            );
+
+            orb.userData = {
+                originalPosition: orb.position.clone(),
+                floatSpeed: 0.5 + Math.random() * 1.5,
+                floatOffset: Math.random() * Math.PI * 2
+            };
+
+            this.scene.add(orb);
+            
+            // Store reference for animation
+            if (!this.backgroundOrbs) this.backgroundOrbs = [];
+            this.backgroundOrbs.push(orb);
+        }
+
+        // Create distant mountains/hills using geometry
+        this.createDistantHills();
+    }
+
+    createDistantHills() {
+        const hillCount = 8;
+        const hillGeometry = new THREE.ConeGeometry(5, 4, 8);
+        
+        for (let i = 0; i < hillCount; i++) {
+            const hillMaterial = new THREE.MeshLambertMaterial({
+                color: new THREE.Color().setHSL(0.3 + Math.random() * 0.2, 0.4, 0.3 + Math.random() * 0.2),
+                transparent: true,
+                opacity: 0.7
+            });
+
+            const hill = new THREE.Mesh(hillGeometry, hillMaterial);
+            hill.position.set(
+                (Math.random() - 0.5) * 60,
+                1,
+                -15 - Math.random() * 10
+            );
+            
+            hill.scale.set(
+                1 + Math.random() * 2,
+                0.5 + Math.random() * 1.5,
+                1 + Math.random() * 2
+            );
+
+            hill.receiveShadow = true;
+            this.scene.add(hill);
+        }
     }
 
     createControls() {
@@ -985,22 +1152,61 @@ class AmazingApp {
         }
 
         // ENHANCED DYNAMIC LIGHTING SYSTEM
-        if (this.ambientLight && this.leftLight && this.rightLight && this.centerLight) {
-            // Animate ambient light color cycling with excitement
+        if (this.ambientLight && this.spoonHighlight && this.monsterHighlight && this.bunnyHighlight) {
             const excitementFactor = this.gameState.excitement / 100;
-            const hue = (time * (0.1 + excitementFactor * 0.2)) % 1;
-            this.ambientLight.color.setHSL(hue, 0.3 + excitementFactor * 0.3, 0.7);
             
-            // Animate point lights for dynamic lighting effects - more intense during chase
-            const baseIntensity = this.gameState.isChasing ? 2.5 : 2.0;
-            this.leftLight.intensity = baseIntensity + Math.sin(time * 1.5) * (0.5 + excitementFactor);
-            this.rightLight.intensity = baseIntensity + Math.sin(time * 1.8 + Math.PI) * (0.5 + excitementFactor);
-            this.centerLight.intensity = (baseIntensity * 0.75) + Math.sin(time * 2.0 + Math.PI/2) * (0.3 + excitementFactor * 0.5);
+            // Animate ambient light subtly
+            this.ambientLight.intensity = 0.6 + Math.sin(time * 0.5) * 0.1;
             
-            // Enhanced color shifting for point lights
-            this.leftLight.color.setHSL((time * 0.05) % 1, 0.3 + excitementFactor * 0.4, 0.8);
-            this.rightLight.color.setHSL((time * 0.05 + 0.33) % 1, 0.3 + excitementFactor * 0.4, 0.8);
-            this.centerLight.color.setHSL((time * 0.05 + 0.66) % 1, 0.3 + excitementFactor * 0.4, 0.8);
+            // Update character highlight positions and intensities
+            if (this.spoon) {
+                this.spoonHighlight.position.copy(this.spoon.position);
+                this.spoonHighlight.position.y += 2;
+                this.spoonHighlight.intensity = 1.5 + Math.sin(time * 2) * (0.3 + excitementFactor * 0.5);
+            }
+            
+            if (this.monster) {
+                this.monsterHighlight.position.copy(this.monster.position);
+                this.monsterHighlight.position.y += 2;
+                this.monsterHighlight.intensity = 1.5 + Math.sin(time * 2.5) * (0.3 + excitementFactor * 0.7);
+                // Pulse more intensely during chase
+                if (this.gameState.isChasing) {
+                    this.monsterHighlight.intensity *= 1.5;
+                }
+            }
+            
+            if (this.bunny) {
+                this.bunnyHighlight.position.copy(this.bunny.position);
+                this.bunnyHighlight.position.y += 1.5;
+                this.bunnyHighlight.intensity = 1.0 + Math.sin(time * 1.8) * 0.2;
+            }
+            
+            // Animate sun light for day/night cycle effect
+            if (this.sunLight) {
+                this.sunLight.intensity = 2.5 + Math.sin(time * 0.1) * 0.3;
+            }
+        }
+
+        // Animate sky background
+        if (this.skyMaterial) {
+            this.skyMaterial.uniforms.time.value = time;
+        }
+
+        // Animate grass swaying
+        if (this.grassField) {
+            // Simple wind effect on grass
+            const windStrength = 0.1 + Math.sin(time * 0.3) * 0.05;
+            this.grassField.rotation.x = Math.sin(time * 0.5) * windStrength;
+        }
+
+        // Animate background orbs
+        if (this.backgroundOrbs) {
+            this.backgroundOrbs.forEach((orb, index) => {
+                orb.position.y = orb.userData.originalPosition.y + 
+                    Math.sin(time * orb.userData.floatSpeed + orb.userData.floatOffset) * 0.5;
+                orb.rotation.y += 0.01;
+                orb.material.opacity = 0.6 + Math.sin(time * 2 + index) * 0.2;
+            });
         }
         
         // Dynamic camera movement during chase
