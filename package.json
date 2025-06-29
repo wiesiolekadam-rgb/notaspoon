@@ -1,5 +1,5 @@
 {
-  "name": "notaspoon",
+  "name": "monster-chase-game",
   "version": "1.0.0",
   "description": "3D model viewer using Spark.js",
   "type": "module",

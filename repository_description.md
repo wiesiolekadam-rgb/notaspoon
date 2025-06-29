@@ -1,12 +1,12 @@
-# Notaspoon Repository Description
+# Monster Chase Game Repository Description
 
 ## Overview
 
-**Notaspoon** is an interactive 3D WebGL game/application featuring a whimsical chase scenario between a metallic spoon and a purple monster. The project demonstrates advanced web graphics programming using Three.js and modern WebGL techniques.
+**Monster Chase Game** is an interactive 3D WebGL game/application featuring a whimsical chase scenario between a bunny and a purple monster. The project demonstrates advanced web graphics programming using Three.js and modern WebGL techniques.
 
 ## Project Details
 
-- **Name**: notaspoon
+- **Name**: monster-chase-game
 - **Version**: 1.0.0
 - **License**: MIT License (Copyright 2025 Jonathan S. Rouach)
 - **Type**: ES6 Module-based web application
@@ -16,9 +16,9 @@
 
 ### Game Mechanics
 The application centers around an interactive chase game where:
-- A **3D metallic spoon** moves around a reflective ground plane
-- A **purple monster** (loaded from a GLTF 3D model) chases the spoon
-- Players can click "Help Spoon!" to make the spoon perform evasive maneuvers
+- A **3D bunny** moves around a reflective ground plane
+- A **purple monster** (loaded from a GLTF 3D model) chases the bunny
+- Players can watch the dynamic chase between the characters
 - Scoring system with combo multipliers for well-timed dodges
 - Real-time particle effects and visual feedback
 
@@ -35,7 +35,7 @@ The application centers around an interactive chase game where:
 #### Visual Effects
 - **Particle system** with 200+ animated particles in spiral galaxy formation
 - **Dynamic particle colors** that shift through rainbow hues over time
-- **Sparkle effects** when spoon successfully dodges
+- **Sparkle effects** during dramatic chase moments
 - **Success flash** visual feedback
 - **Floating score** animations
 - **Combo multiplier** effects
@@ -62,7 +62,7 @@ The application centers around an interactive chase game where:
 
 ### Asset Files
 - **`3D_Purple_Monster.glb`** (1.4MB) - GLTF 3D model of the purple monster character
-- **`spoon-model.js`** (11KB) - Procedurally generated spoon geometry data
+
 - **`gl-matrix-min.js`** (83KB) - WebGL matrix math library
 - **`screenshot.png`** - Visual preview of the application
 
@@ -115,7 +115,7 @@ The README includes important notes about WebGL environmental requirements:
 
 The project includes a 5-iteration roadmap:
 1. ✅ **Refactor for modularity** - Completed
-2. ✅ **Enhanced spoon model & appearance** - Completed  
+2. ✅ **Enhanced bunny model & appearance** - Completed  
 3. **User interaction** - Camera controls and manual rotation
 4. **Advanced lighting** - Multiple light sources and environment mapping
 5. **Scene expansion** - Additional 3D objects and models
@@ -137,4 +137,4 @@ The project includes a 5-iteration roadmap:
 - **Web Portfolio** - Impressive visual demonstration of technical skills
 - **Educational Tool** - Well-documented code for teaching 3D web development
 
-The notaspoon repository represents a sophisticated blend of 3D graphics programming, game design, and modern web development practices, showcasing advanced WebGL capabilities in an entertaining and interactive format.
+The Monster Chase Game repository represents a sophisticated blend of 3D graphics programming, game design, and modern web development practices, showcasing advanced WebGL capabilities in an entertaining and interactive format.

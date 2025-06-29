@@ -28,7 +28,7 @@ Your game now features a **stunning natural environment** that makes the charact
 - **Sun-like directional light** with warm color temperature
 - **Hemisphere lighting** balancing sky and ground illumination
 - **Character highlighting lights** that follow each character:
-  - 🥄 **Spoon**: Cyan highlight for visibility
+  - 🐰 **Bunny**: Green highlight for visibility
   - 👹 **Monster**: Pink/red highlight for drama
   - 🐰 **Bunny**: Green highlight for charm
 - **Soft fill lighting** to reduce harsh shadows

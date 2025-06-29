@@ -234,10 +234,6 @@ button:active {
     }
 }
 
-#help-spoon {
-    background: linear-gradient(45deg, #4ecdc4, #26c6da);
-}
-
 #mute-sound {
     background: linear-gradient(45deg, #9c27b0, #673ab7);
     font-size: 14px;

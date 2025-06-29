@@ -5,7 +5,6 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { spoonModelData } from './spoon-model.js';
 
 class AmazingApp {
     constructor() {
@@ -14,12 +13,10 @@ class AmazingApp {
         this.renderer = null;
         this.composer = null;
         this.controls = null;
-        this.spoon = null;
         this.monster = null;
         this.bunny = null;
         
         // Light circles for characters
-        this.spoonLightCircle = null;
         this.monsterLightCircle = null;
         this.bunnyLightCircle = null;
         
@@ -37,7 +34,6 @@ class AmazingApp {
         this.gameState = {
             score: 0,
             isChasing: false,
-            spoonSpeed: 0.02,
             monsterSpeed: 0.015,
             lastDodge: 0,
             combo: 0,
@@ -145,10 +141,6 @@ class AmazingApp {
         this.scene.add(this.hemiLight);
 
         // Character highlighting lights that follow the characters
-        this.spoonHighlight = new THREE.PointLight(0x00ffff, 1.5, 8);
-        this.spoonHighlight.position.set(-4, 3, 0);
-        this.scene.add(this.spoonHighlight);
-
         this.monsterHighlight = new THREE.PointLight(0xff4080, 1.5, 8);
         this.monsterHighlight.position.set(4, 3, 0);
         this.scene.add(this.monsterHighlight);
@@ -376,11 +368,10 @@ class AmazingApp {
                 </div>
                 <div class="controls">
                     <button id="start-chase">🏃 Start Chase!</button>
-                    <button id="help-spoon">✨ Help Spoon!</button>
                     <button id="mute-sound">🔊 Mute</button>
                 </div>
                 <div class="instructions">
-                    🎯 Click "Help Spoon!" when monster gets close!<br>
+                    🎯 Watch the monster chase the bunny!<br>
                     ⭐ Collect golden power-ups for speed boost!<br>
                     🎵 Audio will start after first interaction
                 </div>
@@ -390,31 +381,6 @@ class AmazingApp {
     }
 
     async loadModels() {
-        // Create enhanced spoon
-        const spoonGeometry = new THREE.BufferGeometry();
-        spoonGeometry.setAttribute('position', new THREE.Float32BufferAttribute(spoonModelData.positions, 3));
-        spoonGeometry.setAttribute('normal', new THREE.Float32BufferAttribute(spoonModelData.normals, 3));
-        spoonGeometry.setIndex(spoonModelData.indices);
-
-        const spoonMaterial = new THREE.MeshStandardMaterial({
-            color: 0xc0c0c0,
-            metalness: 0.9,
-            roughness: 0.1,
-            envMapIntensity: 1.5
-        });
-
-        this.spoon = new THREE.Mesh(spoonGeometry, spoonMaterial);
-        this.spoon.castShadow = true;
-        this.spoon.receiveShadow = true;
-        this.spoon.position.set(-4, 0, 0);
-        this.spoon.userData = {
-            originalPosition: this.spoon.position.clone(),
-            velocity: new THREE.Vector3(),
-            targetPosition: new THREE.Vector3(-4, 0, 0),
-            isEvading: false
-        };
-        this.scene.add(this.spoon);
-
         // Load monster with enhancements
         const loader = new GLTFLoader();
         try {
@@ -506,18 +472,6 @@ class AmazingApp {
     }
 
     createLightCircles() {
-        // Spoon light circle (silver/blue)
-        const spoonCircleGeometry = new THREE.RingGeometry(1.2, 1.8, 32);
-        const spoonCircleMaterial = new THREE.MeshBasicMaterial({
-            color: 0x00FFFF,
-            transparent: true,
-            opacity: 0.3,
-            side: THREE.DoubleSide
-        });
-        this.spoonLightCircle = new THREE.Mesh(spoonCircleGeometry, spoonCircleMaterial);
-        this.spoonLightCircle.rotation.x = -Math.PI / 2;
-        this.scene.add(this.spoonLightCircle);
-
         // Monster light circle (red/purple)
         const monsterCircleGeometry = new THREE.RingGeometry(1.5, 2.2, 32);
         const monsterCircleMaterial = new THREE.MeshBasicMaterial({
@@ -711,10 +665,6 @@ class AmazingApp {
             this.startChase();
         });
 
-        document.getElementById('help-spoon').addEventListener('click', () => {
-            this.helpSpoon();
-        });
-
         document.getElementById('mute-sound').addEventListener('click', (e) => {
             if (this.audioContext) {
                 if (this.audioContext.state === 'suspended') {
@@ -758,9 +708,6 @@ class AmazingApp {
         // Create initial power-up
         this.createPowerUp();
         
-        // Add excitement particles
-        this.createMagicalParticles(this.spoon.position, 20, 0x00FFFF);
-        
         // Screen shake for drama
         this.createScreenShake(0.05, 0.5);
         
@@ -768,69 +715,7 @@ class AmazingApp {
         this.controls.autoRotate = false;
     }
 
-    helpSpoon() {
-        if (!this.gameState.isChasing || !this.spoon || !this.monster) return;
-        
-        const distance = this.spoon.position.distanceTo(this.monster.position);
-        
-        if (distance < 3) {
-            // Successful dodge!
-            const points = 10 + (this.gameState.combo * 5);
-            this.gameState.score += points;
-            this.gameState.combo++;
-            this.gameState.lastDodge = Date.now();
-            this.gameState.excitement = Math.min(100, this.gameState.excitement + 20);
-            
-            // Play dodge sound
-            if (this.sounds.dodge) {
-                this.sounds.dodge.play(0.4);
-            }
-            
-            // Play sparkle sound
-            if (this.sounds.sparkle) {
-                this.sounds.sparkle.play(0.2);
-            }
-            
-            // Make spoon dodge dramatically
-            this.spoon.userData.isEvading = true;
-            const dodgeDirection = new THREE.Vector3()
-                .subVectors(this.spoon.position, this.monster.position)
-                .normalize()
-                .multiplyScalar(3);
-            
-            this.spoon.userData.targetPosition.copy(this.spoon.position).add(dodgeDirection);
-            
-            // Enhanced sparkle effect
-            this.createSparkleEffect(this.spoon.position);
-            this.createMagicalParticles(this.spoon.position, 25, 0x00FFFF);
-            
-            // Visual feedback effects
-            this.createSuccessFlash();
-            this.createFloatingScore(points);
-            
-            if (this.gameState.combo > 1) {
-                this.createComboEffect();
-                if (this.sounds.combo) {
-                    this.sounds.combo.play(0.5);
-                }
-            }
-            
-            // Screen shake for impact
-            this.createScreenShake(0.08, 0.2);
-            
-            // Spawn power-up occasionally
-            if (Math.random() < 0.3) {
-                this.createPowerUp();
-            }
-            
-            this.updateUI();
-        } else {
-            // Too far away, reset combo
-            this.gameState.combo = 0;
-            this.gameState.excitement = Math.max(0, this.gameState.excitement - 5);
-            this.updateUI();
-        }
-    }
+
 
     createSparkleEffect(position) {
         const sparkleCount = 10; // Changed from 20
@@ -952,13 +837,6 @@ class AmazingApp {
         const time = this.clock.getElapsedTime(); // Get time at the beginning
 
         // Update light circles to follow characters
-        if (this.spoon && this.spoonLightCircle) {
-            this.spoonLightCircle.position.copy(this.spoon.position);
-            this.spoonLightCircle.position.y = -0.1;
-            // Animate light circle
-            this.spoonLightCircle.rotation.z += 0.02;
-            this.spoonLightCircle.material.opacity = 0.3 + Math.sin(time * 3) * 0.1;
-        }
 
         if (this.monster && this.monsterLightCircle) {
             this.monsterLightCircle.position.copy(this.monster.position);
@@ -968,9 +846,9 @@ class AmazingApp {
             const chaseIntensity = this.gameState.isChasing ? 0.2 : 0.1;
             this.monsterLightCircle.material.opacity = 0.4 + Math.sin(time * 5) * chaseIntensity;
             
-            // Change color based on distance to spoon
-            if (this.spoon) {
-                const distance = this.monster.position.distanceTo(this.spoon.position);
+            // Change color based on distance to bunny
+            if (this.bunny) {
+                const distance = this.monster.position.distanceTo(this.bunny.position);
                 if (distance < 3) {
                     this.monsterLightCircle.material.color.setHex(0xFF0000); // Red when close
                 } else {
@@ -1004,9 +882,9 @@ class AmazingApp {
             powerUp.rotation.y += powerUp.userData.rotationSpeed;
             powerUp.position.y = powerUp.userData.originalY + Math.sin(time * 3 + index) * 0.3;
             
-            // Check for collection by spoon
-            if (this.spoon && !powerUp.userData.collected) {
-                const distance = powerUp.position.distanceTo(this.spoon.position);
+            // Check for collection by bunny
+            if (this.bunny && !powerUp.userData.collected) {
+                const distance = powerUp.position.distanceTo(this.bunny.position);
                 if (distance < 1) {
                     powerUp.userData.collected = true;
                     this.collectPowerUp(powerUp);
@@ -1039,17 +917,17 @@ class AmazingApp {
             this.bunny.position.z = Math.max(-10, Math.min(10, this.bunny.position.z));
         }
 
-        // Existing game logic for spoon and monster
-        if (!this.gameState.isChasing || !this.spoon || !this.monster) {
+        // Existing game logic for bunny and monster
+        if (!this.gameState.isChasing || !this.bunny || !this.monster) {
             // If not chasing, or main characters not loaded, maybe hide or disable UI elements?
             // For now, just return as original code did.
             return;
         }
         
-        // Update monster AI with more intelligence
+        // Update monster AI with more intelligence - now chasing bunny
         if (this.monster.userData.isChasing) {
             const direction = new THREE.Vector3()
-                .subVectors(this.spoon.position, this.monster.position)
+                .subVectors(this.bunny.position, this.monster.position)
                 .normalize();
             
             // Monster gets faster as excitement builds
@@ -1065,7 +943,7 @@ class AmazingApp {
             ));
             
             // Monster makes sounds when getting close
-            const distance = this.monster.position.distanceTo(this.spoon.position);
+            const distance = this.monster.position.distanceTo(this.bunny.position);
             if (distance < 2 && Math.random() < 0.05) {
                 if (this.sounds.monster) {
                     this.sounds.monster.play(0.3);
@@ -1073,32 +951,10 @@ class AmazingApp {
             }
         }
         
-        // Update spoon behavior with power-up effects
-        if (!this.spoon.userData.isEvading) {
-            // Random movement when not evading
-            if (Math.random() < 0.02) {
-                this.spoon.userData.targetPosition.set(
-                    (Math.random() - 0.5) * 8,
-                    0,
-                    (Math.random() - 0.5) * 8
-                );
-            }
-        }
-        
-        // Smooth movement for both characters
-        const spoonSpeed = this.gameState.powerUpActive ? 0.08 : 0.05;
-        this.spoon.position.lerp(this.spoon.userData.targetPosition, spoonSpeed);
+        // Smooth movement for monster
         this.monster.position.lerp(this.monster.userData.targetPosition, 0.03);
         
-        // Reset evasion state
-        if (this.spoon.userData.isEvading && 
-            this.spoon.position.distanceTo(this.spoon.userData.targetPosition) < 0.1) {
-            this.spoon.userData.isEvading = false;
-        }
-        
         // Keep characters in bounds
-        this.spoon.position.x = Math.max(-10, Math.min(10, this.spoon.position.x));
-        this.spoon.position.z = Math.max(-10, Math.min(10, this.spoon.position.z));
         this.monster.position.x = Math.max(-10, Math.min(10, this.monster.position.x));
         this.monster.position.z = Math.max(-10, Math.min(10, this.monster.position.z));
     }
@@ -1152,19 +1008,13 @@ class AmazingApp {
         }
 
         // ENHANCED DYNAMIC LIGHTING SYSTEM
-        if (this.ambientLight && this.spoonHighlight && this.monsterHighlight && this.bunnyHighlight) {
+        if (this.ambientLight && this.monsterHighlight && this.bunnyHighlight) {
             const excitementFactor = this.gameState.excitement / 100;
             
             // Animate ambient light subtly
             this.ambientLight.intensity = 0.6 + Math.sin(time * 0.5) * 0.1;
             
             // Update character highlight positions and intensities
-            if (this.spoon) {
-                this.spoonHighlight.position.copy(this.spoon.position);
-                this.spoonHighlight.position.y += 2;
-                this.spoonHighlight.intensity = 1.5 + Math.sin(time * 2) * (0.3 + excitementFactor * 0.5);
-            }
-            
             if (this.monster) {
                 this.monsterHighlight.position.copy(this.monster.position);
                 this.monsterHighlight.position.y += 2;
@@ -1210,12 +1060,12 @@ class AmazingApp {
         }
         
         // Dynamic camera movement during chase
-        if (this.gameState.isChasing && this.spoon && this.monster) {
-            const distance = this.spoon.position.distanceTo(this.monster.position);
+        if (this.gameState.isChasing && this.bunny && this.monster) {
+            const distance = this.bunny.position.distanceTo(this.monster.position);
             if (distance < 4) {
                 // Camera follows the action more closely
                 const midPoint = new THREE.Vector3()
-                    .addVectors(this.spoon.position, this.monster.position)
+                    .addVectors(this.bunny.position, this.monster.position)
                     .multiplyScalar(0.5);
                 
                 this.controls.target.lerp(midPoint, 0.02);

@@ -1,8 +1,8 @@
 # 🎮 AMAZING GAME ENHANCEMENTS - 100x MORE FUN! 🎮
 
 ## 💫 Light Circles Around Characters
-- **Spoon**: Cyan/blue animated light circle that rotates and pulses
-- **Monster**: Red/purple light circle that changes color based on proximity to spoon
+- **Bunny**: Green/yellow animated light circle that rotates and pulses
+- **Monster**: Red/purple light circle that changes color based on proximity to bunny
 - **Bunny**: Green/yellow gentle pulsing light circle
 - All circles follow their characters and animate dynamically!
 
@@ -18,7 +18,7 @@
 
 ## ⚡ Power-Up System
 - **Golden Spheres**: Randomly spawn around the arena
-- **Speed Boost**: Temporary increased movement speed for spoon
+- **Speed Boost**: Temporary increased movement speed for bunny
 - **Visual Effects**: Explosion of golden particles when collected
 - **Audio Feedback**: Satisfying power-up collection sound
 - **UI Indicator**: Glowing status display when active
@@ -56,8 +56,8 @@
 
 ## 🚀 How to Play (Enhanced)
 1. Click "🏃 Start Chase!" to begin the epic pursuit
-2. Watch for the monster's red light circle getting close to spoon's cyan circle
-3. Click "✨ Help Spoon!" at the perfect moment for maximum points
+2. Watch for the monster's red light circle getting close to bunny's green circle
+3. Enjoy the automated chase sequence with dynamic interactions
 4. Collect golden power-ups for speed boosts and bonus points
 5. Build your combo and excitement level for higher scores
 6. Enjoy the spectacular light show and audio experience!
