@@ -31,15 +31,38 @@ class AmazingApp {
         this.screenShake = { intensity: 0, duration: 0 };
         this.cameraOriginalPosition = new THREE.Vector3();
         
+        // NEW: Player input system
+        this.keys = {
+            w: false, a: false, s: false, d: false,
+            space: false, shift: false, r: false
+        };
+        
+        // NEW: Enhanced game state with player control
         this.gameState = {
+            // Game flow states
+            isPlaying: false,
+            gameOver: false,
+            
+            // Player stats
             score: 0,
+            survivalTime: 0,
+            lives: 3,
+            maxLives: 3,
+            
+            // Movement and abilities
+            bunnySpeed: 5,
+            monsterSpeed: 3,
+            stamina: 100,
+            maxStamina: 100,
+            
+            // Legacy properties (keeping for compatibility)
             isChasing: false,
-            monsterSpeed: 0.015,
             lastDodge: 0,
             combo: 0,
             powerUpActive: false,
             excitement: 0
         };
+        
         this.clock = new THREE.Clock();
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
@@ -60,6 +83,7 @@ class AmazingApp {
         this.createLightCircles();
         this.initSoundSystem();
         this.setupEventListeners();
+        this.setupInputHandling(); // NEW: Add input handling
         this.startGameLoop();
         this.animate();
     }
@@ -355,29 +379,63 @@ class AmazingApp {
     }
 
     createUI() {
-        // Create game UI
+        // Create enhanced interactive game UI
         const ui = document.createElement('div');
         ui.id = 'game-ui';
         ui.innerHTML = `
             <div class="ui-panel">
-                <div class="score">Score: <span id="score">0</span></div>
-                <div class="combo">Combo: <span id="combo">0</span></div>
-                <div class="excitement">Excitement: <span id="excitement">0</span>%</div>
+                <div class="game-stats">
+                    <div class="score">Score: <span id="score">0</span></div>
+                    <div class="survival-time">Time: <span id="survival-time">0.0</span>s</div>
+                    <div class="lives">Lives: <span id="lives">❤️❤️❤️</span></div>
+                    <div class="combo">Combo: <span id="combo">0</span></div>
+                </div>
+                
+                <div class="stamina-container">
+                    <div class="stamina-label">Stamina</div>
+                    <div class="stamina-bar">
+                        <div class="stamina-fill" id="stamina-fill"></div>
+                    </div>
+                </div>
+                
                 <div class="power-up-status" id="power-up-status" style="display: none;">
                     ⚡ SPEED BOOST ACTIVE!
                 </div>
+                
                 <div class="controls">
-                    <button id="start-chase">🏃 Start Chase!</button>
+                    <button id="start-game">� START GAME</button>
                     <button id="mute-sound">🔊 Mute</button>
                 </div>
+                
                 <div class="instructions">
-                    🎯 Watch the monster chase the bunny!<br>
+                    <strong>� CONTROLS:</strong><br>
+                    WASD/Arrows: Move bunny<br>
+                    SPACE: Bunny hop (uses stamina)<br>
+                    SHIFT: Sprint (drains stamina)<br>
+                    CLICK: Dash toward mouse<br>
+                    R: Restart when game over<br><br>
+                    🎯 <strong>OBJECTIVE:</strong> Survive as long as possible!<br>
                     ⭐ Collect golden power-ups for speed boost!<br>
                     🎵 Audio will start after first interaction
                 </div>
             </div>
+            
+            <div class="game-over-screen" id="game-over-screen" style="display: none;">
+                <div class="game-over-content">
+                    <h2>🎮 MONSTER CHASE GAME</h2>
+                    <div id="game-over-message">
+                        <h3>Ready to Play?</h3>
+                        <p>Control the bunny to escape the monster!</p>
+                        <p><em>Use WASD to move, SPACE to hop, and survive as long as possible!</em></p>
+                    </div>
+                    <button class="start-button" id="game-over-start">🏃 START GAME</button>
+                </div>
+            </div>
         `;
         document.body.appendChild(ui);
+        
+        // Show initial game over screen
+        document.getElementById('game-over-screen').style.display = 'flex';
     }
 
     async loadModels() {
@@ -660,9 +718,13 @@ class AmazingApp {
             this.composer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Game controls
-        document.getElementById('start-chase').addEventListener('click', () => {
-            this.startChase();
+        // Game controls - Updated for new interactive system
+        document.getElementById('start-game').addEventListener('click', () => {
+            this.startGame();
+        });
+        
+        document.getElementById('game-over-start').addEventListener('click', () => {
+            this.startGame();
         });
 
         document.getElementById('mute-sound').addEventListener('click', (e) => {
@@ -677,23 +739,75 @@ class AmazingApp {
             }
         });
 
-        // Mouse tracking for interactions
+        // Mouse tracking for interactions and dash ability
         window.addEventListener('mousemove', (event) => {
             this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         });
+        
+        // Mouse click for dash ability
+        window.addEventListener('click', (event) => {
+            if (this.gameState.isPlaying && !this.gameState.gameOver) {
+                this.performMouseDash(event);
+            }
+        });
+    }
+    
+    // NEW: Input handling system for player control
+    setupInputHandling() {
+        // Keyboard controls
+        document.addEventListener('keydown', (event) => {
+            switch(event.code) {
+                case 'KeyW': case 'ArrowUp': this.keys.w = true; break;
+                case 'KeyA': case 'ArrowLeft': this.keys.a = true; break;
+                case 'KeyS': case 'ArrowDown': this.keys.s = true; break;
+                case 'KeyD': case 'ArrowRight': this.keys.d = true; break;
+                case 'Space': 
+                    this.keys.space = true; 
+                    event.preventDefault(); // Prevent page scroll
+                    break;
+                case 'ShiftLeft': case 'ShiftRight': this.keys.shift = true; break;
+                case 'KeyR': 
+                    this.keys.r = true;
+                    if (this.gameState.gameOver) this.startGame();
+                    break;
+            }
+        });
+        
+        document.addEventListener('keyup', (event) => {
+            switch(event.code) {
+                case 'KeyW': case 'ArrowUp': this.keys.w = false; break;
+                case 'KeyA': case 'ArrowLeft': this.keys.a = false; break;
+                case 'KeyS': case 'ArrowDown': this.keys.s = false; break;
+                case 'KeyD': case 'ArrowRight': this.keys.d = false; break;
+                case 'Space': this.keys.space = false; break;
+                case 'ShiftLeft': case 'ShiftRight': this.keys.shift = false; break;
+                case 'KeyR': this.keys.r = false; break;
+            }
+        });
     }
 
-    startChase() {
-        this.gameState.isChasing = true;
+    // NEW: Enhanced game start method
+    startGame() {
+        this.gameState.isPlaying = true;
+        this.gameState.gameOver = false;
         this.gameState.score = 0;
+        this.gameState.survivalTime = 0;
+        this.gameState.lives = this.gameState.maxLives;
+        this.gameState.stamina = this.gameState.maxStamina;
         this.gameState.combo = 0;
         this.gameState.excitement = 0;
-        this.updateUI();
+        this.gameState.isChasing = true; // Keep legacy compatibility
         
+        // Reset character positions
+        if (this.bunny) this.bunny.position.set(0, 0, 0);
         if (this.monster) {
+            this.monster.position.set(8, 0, 8);
             this.monster.userData.isChasing = true;
         }
+        
+        // Hide game over screen
+        document.getElementById('game-over-screen').style.display = 'none';
         
         // Play chase start sound
         if (this.sounds.chaseStart) {
@@ -711,8 +825,255 @@ class AmazingApp {
         // Screen shake for drama
         this.createScreenShake(0.05, 0.5);
         
-        // Disable auto-rotate during chase
+        // Disable auto-rotate during play
         this.controls.autoRotate = false;
+        
+        // Restart clock
+        this.clock.start();
+        
+        this.updateUI();
+    }
+
+    // LEGACY: Keep original method for compatibility
+    startChase() {
+        this.startGame();
+    }
+    
+    // NEW: Player-controlled bunny movement
+    updatePlayerMovement(deltaTime) {
+        if (!this.bunny || this.gameState.gameOver || !this.gameState.isPlaying) return;
+        
+        const baseSpeed = this.gameState.bunnySpeed;
+        let currentSpeed = baseSpeed;
+        
+        // Sprint mechanic
+        if (this.keys.shift && this.gameState.stamina > 0) {
+            currentSpeed *= 1.8;
+            this.gameState.stamina -= 60 * deltaTime; // Drain stamina
+        } else {
+            // Regenerate stamina when not sprinting
+            this.gameState.stamina = Math.min(this.gameState.maxStamina, 
+                this.gameState.stamina + 30 * deltaTime);
+        }
+        
+        // Movement input
+        const movement = new THREE.Vector3(0, 0, 0);
+        
+        if (this.keys.w) movement.z -= 1;
+        if (this.keys.s) movement.z += 1;
+        if (this.keys.a) movement.x -= 1;
+        if (this.keys.d) movement.x += 1;
+        
+        // Normalize diagonal movement
+        if (movement.length() > 0) {
+            movement.normalize();
+            movement.multiplyScalar(currentSpeed * deltaTime);
+            this.bunny.position.add(movement);
+        }
+        
+        // Bunny hop ability
+        if (this.keys.space && this.gameState.stamina >= 20) {
+            this.performBunnyHop();
+            this.keys.space = false; // Prevent continuous hopping
+        }
+        
+        // Keep bunny in bounds
+        this.bunny.position.x = Math.max(-12, Math.min(12, this.bunny.position.x));
+        this.bunny.position.z = Math.max(-12, Math.min(12, this.bunny.position.z));
+        
+        // Clamp stamina
+        this.gameState.stamina = Math.max(0, Math.min(this.gameState.maxStamina, this.gameState.stamina));
+    }
+    
+    // NEW: Special abilities
+    performBunnyHop() {
+        if (this.gameState.stamina >= 20) {
+            this.gameState.stamina -= 20;
+            
+            // Quick directional boost
+            const forward = new THREE.Vector3(0, 0, -2);
+            if (this.keys.w || this.keys.s || this.keys.a || this.keys.d) {
+                // Hop in movement direction
+                if (this.keys.w) forward.set(0, 0, -2);
+                if (this.keys.s) forward.set(0, 0, 2);
+                if (this.keys.a) forward.set(-2, 0, 0);
+                if (this.keys.d) forward.set(2, 0, 0);
+                // Diagonal combinations
+                if (this.keys.w && this.keys.a) forward.set(-1.4, 0, -1.4);
+                if (this.keys.w && this.keys.d) forward.set(1.4, 0, -1.4);
+                if (this.keys.s && this.keys.a) forward.set(-1.4, 0, 1.4);
+                if (this.keys.s && this.keys.d) forward.set(1.4, 0, 1.4);
+            }
+            
+            this.bunny.position.add(forward);
+            
+            // Visual and audio feedback
+            this.createHopEffect();
+            if (this.sounds.dodge) {
+                this.sounds.dodge.play(0.6);
+            }
+        }
+    }
+    
+    performMouseDash(event) {
+        if (this.gameState.stamina >= 30) {
+            this.gameState.stamina -= 30;
+            
+            // Convert mouse position to world coordinates
+            const mouse = new THREE.Vector2(
+                (event.clientX / window.innerWidth) * 2 - 1,
+                -(event.clientY / window.innerHeight) * 2 + 1
+            );
+            
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, this.camera);
+            
+            // Cast ray to ground plane
+            const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+            const targetPoint = new THREE.Vector3();
+            raycaster.ray.intersectPlane(groundPlane, targetPoint);
+            
+            // Dash toward target (limited distance)
+            const dashDirection = targetPoint.sub(this.bunny.position);
+            const dashDistance = Math.min(4, dashDirection.length());
+            
+            if (dashDistance > 0.5) { // Minimum dash distance
+                dashDirection.normalize().multiplyScalar(dashDistance);
+                this.bunny.position.add(dashDirection);
+                
+                this.createDashEffect(this.bunny.position);
+                this.createScreenShake(0.08, 0.2);
+                
+                if (this.sounds.sparkle) {
+                    this.sounds.sparkle.play(0.4);
+                }
+            }
+        }
+    }
+    
+    // NEW: Smart monster AI that chases the player
+    updateMonsterAI(deltaTime) {
+        if (!this.monster || !this.bunny || this.gameState.gameOver || !this.gameState.isPlaying) return;
+        
+        // Calculate direction to bunny
+        const direction = new THREE.Vector3()
+            .subVectors(this.bunny.position, this.monster.position)
+            .normalize();
+        
+        // Progressive difficulty - monster gets faster over time
+        const timeMultiplier = 1 + (this.gameState.survivalTime / 30) * 0.5;
+        const currentSpeed = this.gameState.monsterSpeed * timeMultiplier;
+        
+        // Move monster toward bunny
+        const movement = direction.multiplyScalar(currentSpeed * deltaTime);
+        this.monster.position.add(movement);
+        
+        // Monster looks at bunny
+        this.monster.lookAt(this.bunny.position);
+        
+        // Keep monster in bounds
+        this.monster.position.x = Math.max(-15, Math.min(15, this.monster.position.x));
+        this.monster.position.z = Math.max(-15, Math.min(15, this.monster.position.z));
+        
+        // Monster makes sounds when getting close
+        const distance = this.monster.position.distanceTo(this.bunny.position);
+        if (distance < 3 && Math.random() < 0.02) {
+            if (this.sounds.monster) {
+                this.sounds.monster.play(0.3);
+            }
+        }
+    }
+    
+    // NEW: Collision detection and game over
+    checkCollisions() {
+        if (!this.monster || !this.bunny || this.gameState.gameOver || !this.gameState.isPlaying) return;
+        
+        const distance = this.monster.position.distanceTo(this.bunny.position);
+        
+        // Monster caught the bunny!
+        if (distance < 1.5) {
+            this.bunnyHit();
+        }
+        
+        // Warning when monster gets close
+        if (distance < 3 && distance > 1.5) {
+            this.createDangerWarning();
+        }
+    }
+    
+    bunnyHit() {
+        this.gameState.lives--;
+        
+        // Create hit effects
+        this.createHitEffect();
+        this.createScreenShake(0.15, 0.6);
+        
+        if (this.gameState.lives <= 0) {
+            this.gameOver();
+        } else {
+            // Reset positions for next life
+            this.bunny.position.set(0, 0, 0);
+            this.monster.position.set(8, 0, 8);
+            
+            // Temporary invincibility period
+            setTimeout(() => {
+                // Could add visual indicator for invincibility here
+            }, 1500);
+        }
+    }
+    
+    gameOver() {
+        this.gameState.gameOver = true;
+        this.gameState.isPlaying = false;
+        
+        // Stop background sound
+        if (this.sounds.background) {
+            this.sounds.background.stop();
+        }
+        
+        // Re-enable auto-rotate
+        this.controls.autoRotate = true;
+        
+        // Show game over screen
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const message = document.getElementById('game-over-message');
+        
+        message.innerHTML = `
+            <h3>🏆 Game Over!</h3>
+            <p><strong>Final Score:</strong> ${this.gameState.score}</p>
+            <p><strong>Survival Time:</strong> ${this.gameState.survivalTime.toFixed(1)}s</p>
+            <p>The monster caught you!</p>
+            <p><em>Press R or click START to play again</em></p>
+        `;
+        
+        gameOverScreen.style.display = 'flex';
+        
+        // Create final score effect
+        this.createSuccessFlash();
+    }
+    
+    // NEW: Visual effects for interactions
+    createHopEffect() {
+        this.createMagicalParticles(this.bunny.position, 8, 0x00FF80);
+    }
+    
+    createDashEffect(position) {
+        this.createMagicalParticles(position, 12, 0x80FFFF);
+        this.createSparkleEffect(position);
+    }
+    
+    createHitEffect() {
+        this.createMagicalParticles(this.bunny.position, 20, 0xFF4444);
+        if (this.sounds.monster) {
+            this.sounds.monster.play(0.8);
+        }
+    }
+    
+    createDangerWarning() {
+        // Visual warning when monster is close - could add red screen tint
+        if (Math.random() < 0.01) { // Occasional warning effect
+            this.createScreenShake(0.02, 0.1);
+        }
     }
 
 
@@ -815,7 +1176,15 @@ class AmazingApp {
     updateUI() {
         document.getElementById('score').textContent = this.gameState.score;
         document.getElementById('combo').textContent = this.gameState.combo;
-        document.getElementById('excitement').textContent = Math.round(this.gameState.excitement);
+        document.getElementById('survival-time').textContent = this.gameState.survivalTime.toFixed(1);
+        document.getElementById('lives').textContent = '❤️'.repeat(this.gameState.lives);
+        
+        // Update stamina bar
+        const staminaPercent = (this.gameState.stamina / this.gameState.maxStamina) * 100;
+        const staminaFill = document.getElementById('stamina-fill');
+        if (staminaFill) {
+            staminaFill.style.width = staminaPercent + '%';
+        }
         
         // Show/hide power-up status
         const powerUpStatus = document.getElementById('power-up-status');
@@ -834,16 +1203,22 @@ class AmazingApp {
     }
 
     updateGameLogic() {
-        const time = this.clock.getElapsedTime(); // Get time at the beginning
+        const time = this.clock.getElapsedTime();
+        const deltaTime = this.clock.getDelta();
+
+        // Update game time and score during play
+        if (this.gameState.isPlaying && !this.gameState.gameOver) {
+            this.gameState.survivalTime += deltaTime;
+            this.gameState.score = Math.floor(this.gameState.survivalTime * 10);
+        }
 
         // Update light circles to follow characters
-
         if (this.monster && this.monsterLightCircle) {
             this.monsterLightCircle.position.copy(this.monster.position);
             this.monsterLightCircle.position.y = -0.1;
             // Monster circle pulses more aggressively during chase
             this.monsterLightCircle.rotation.z -= 0.03;
-            const chaseIntensity = this.gameState.isChasing ? 0.2 : 0.1;
+            const chaseIntensity = this.gameState.isPlaying ? 0.2 : 0.1;
             this.monsterLightCircle.material.opacity = 0.4 + Math.sin(time * 5) * chaseIntensity;
             
             // Change color based on distance to bunny
@@ -894,69 +1269,31 @@ class AmazingApp {
             }
         });
 
-        if (this.bunny && this.bunny.userData) { // Check bunny and its userData exists
-            // Bunny random movement logic
-            if (Math.random() < 0.015) { // Adjust probability for target change frequency
-                this.bunny.userData.targetPosition.set(
-                    (Math.random() - 0.5) * 16,  // x range (-8 to +8)
-                    this.bunny.userData.originalPosition.y, // Base Y for bobbing
-                    (Math.random() - 0.5) * 16   // z range (-8 to +8)
-                );
+        // NEW: Player-controlled gameplay logic
+        if (this.gameState.isPlaying && !this.gameState.gameOver) {
+            // Update player movement
+            this.updatePlayerMovement(deltaTime);
+            
+            // Update monster AI
+            this.updateMonsterAI(deltaTime);
+            
+            // Check collisions
+            this.checkCollisions();
+            
+            // Spawn power-ups occasionally
+            if (Math.random() < 0.003) { // Reduced frequency
+                this.createPowerUp();
             }
-
-            // Smoothly move bunny towards its target position for X and Z
-            this.bunny.position.x = THREE.MathUtils.lerp(this.bunny.position.x, this.bunny.userData.targetPosition.x, 0.02);
-            this.bunny.position.z = THREE.MathUtils.lerp(this.bunny.position.z, this.bunny.userData.targetPosition.z, 0.02);
-
-            // Bobbing animation for Y position
-            // Ensure originalPosition.y is sensible (e.g., 0 if ground is -2 and bunny is 1.5 tall centered)
-            this.bunny.position.y = this.bunny.userData.originalPosition.y + (Math.sin(time * 2.5) * 0.15); // Adjust speed and amplitude
-
-            // Keep bunny in bounds (can be different from spoon/monster if desired)
-            this.bunny.position.x = Math.max(-10, Math.min(10, this.bunny.position.x));
-            this.bunny.position.z = Math.max(-10, Math.min(10, this.bunny.position.z));
-        }
-
-        // Existing game logic for bunny and monster
-        if (!this.gameState.isChasing || !this.bunny || !this.monster) {
-            // If not chasing, or main characters not loaded, maybe hide or disable UI elements?
-            // For now, just return as original code did.
-            return;
-        }
-        
-        // Update monster AI with more intelligence - now chasing bunny
-        if (this.monster.userData.isChasing) {
-            const direction = new THREE.Vector3()
-                .subVectors(this.bunny.position, this.monster.position)
-                .normalize();
-            
-            // Monster gets faster as excitement builds
-            const speedMultiplier = 1 + (this.gameState.excitement / 200);
-            this.monster.userData.targetPosition.copy(this.monster.position)
-                .add(direction.multiplyScalar(this.gameState.monsterSpeed * speedMultiplier));
-            
-            // Add some randomness to make it more interesting
-            this.monster.userData.targetPosition.add(new THREE.Vector3(
-                (Math.random() - 0.5) * 0.1,
-                0,
-                (Math.random() - 0.5) * 0.1
-            ));
-            
-            // Monster makes sounds when getting close
-            const distance = this.monster.position.distanceTo(this.bunny.position);
-            if (distance < 2 && Math.random() < 0.05) {
-                if (this.sounds.monster) {
-                    this.sounds.monster.play(0.3);
-                }
+        } else {
+            // LEGACY: When not playing, keep some automated behavior for visual appeal
+            if (this.bunny && this.bunny.userData) {
+                // Gentle bobbing animation for Y position when not playing
+                this.bunny.position.y = this.bunny.userData.originalPosition.y + (Math.sin(time * 2.5) * 0.15);
             }
         }
-        
-        // Smooth movement for monster
-        this.monster.position.lerp(this.monster.userData.targetPosition, 0.03);
-        
-        // Keep characters in bounds
-        this.monster.position.x = Math.max(-10, Math.min(10, this.monster.position.x));
-        this.monster.position.z = Math.max(-10, Math.min(10, this.monster.position.z));
+
+        // Update UI
+        this.updateUI();
     }
 
     collectPowerUp(powerUp) {
